@@ -1,12 +1,13 @@
 <div align="center">
   <img src="public/logo-clean.png" width="180" alt="Mystery Bake Bite Logo" />
-  
-  # 🥐 Mystery Bake Bite
-  **Premium Bakery & Pastry Management Dashboard**
-  
-  <br />
 
-  <img src="https://img.shields.io/badge/Status-Proprietary-red?style=for-the-badge" />
+# 🥐 Mystery Bake Bite
+
+  **Premium Bakery & Pastry Management Dashboard**
+
+<br />
+
+<img src="https://img.shields.io/badge/Status-Proprietary-red?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Owner-DivAmok_Corp-blue?style=for-the-badge" />
   <br />
   <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
@@ -15,10 +16,9 @@
   <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" />
 </div>
 
-
 <br />
 
-## 🔒 Proprietary Notice
+## 🔒 Proprietary Notice.
 
 This software is **Proprietary** and owned by **DivAmok Corp. ltd**. All rights are reserved. Unauthorized copying, modification, or redistribution of this software, via any medium, is strictly prohibited.
 
@@ -45,18 +45,23 @@ Most bakery software is built with sterile, generic interfaces that don't match 
 ## ✨ Core Features
 
 ### 📦 Order & Sales Management
+
 Track every single order from placement to delivery. Features an intuitive order creation flow, auto-calculating totals, and an interactive reporting dashboard with dynamic date-range filtering to analyze sales performance.
 
 ### 🧁 Product Catalog (Bites)
+
 Manage your menu items with ease. Upload photos per product, set dynamic pricing, categorize items (e.g., Pastries, Breads, Cakes), and write mouth-watering descriptions.
 
 ### 👥 Customer Directory (CRM)
+
 Build lasting relationships. Keep a secure directory of all your customers, complete with contact details, order history, and custom notes to provide a personalized, VIP bakery experience.
 
 ### 📖 Secret Recipe Book
+
 The heart of the bakery. Securely store your proprietary recipes, complete with detailed ingredient lists, step-by-step methods, and creation timestamps to protect your intellectual property.
 
 ### 🔧 Equipment Fleet
+
 Keep the kitchen running flawlessly. Track your industrial ovens, mixers, and display cases. Monitor purchase dates, log maintenance records, and instantly see the operational status of every machine.
 
 ---
@@ -108,4 +113,3 @@ This project is licensed under the **Proprietary Software License**. See the [LI
 ## 🎨 Design Philosophy
 
 The UI was meticulously crafted to avoid the "sterile SaaS" look. By utilizing a cohesive color palette inspired by baking ingredients (deep chocolates, warm creams, and toasted doughs), layered translucency (glass effects), and carefully choreographed layout transitions, the software feels warm, tactile, and incredibly professional.
-
