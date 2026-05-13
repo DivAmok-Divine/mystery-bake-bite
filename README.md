@@ -1,10 +1,11 @@
-# 🥐 Mystery Bake Bite
-
-**Premium Bakery & Pastry Management Dashboard**
-
-![Mystery Bake Bite Banner](https://images.unsplash.com/photo-1558961363-fa8fdf82db35?q=80&w=2000&auto=format&fit=crop)
-
 <div align="center">
+  <img src="public/logo-clean.png" width="180" alt="Mystery Bake Bite Logo" />
+  
+  # 🥐 Mystery Bake Bite
+  **Premium Bakery & Pastry Management Dashboard**
+  
+  <br />
+
   <img src="https://img.shields.io/badge/Status-Proprietary-red?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Owner-DivAmok_Corp-blue?style=for-the-badge" />
   <br />
@@ -13,6 +14,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" />
   <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" />
 </div>
+
 
 <br />
 
