@@ -31,5 +31,5 @@ git commit -m "$description"
 echo -e "${CHOCOLATE}Step 3: Pushing to GitHub...${NC}"
 git push origin main
 
-echo -e "\n${GOLD}✨ Success! Your code is now live on GitHub.${NC}"
+echo -e "\n${GOLD}✨ Success! Your code is now lives on GitHub.${NC}"
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
