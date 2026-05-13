@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-chocolate: #3d2b1f;
+    --brand-dough: #e2c9b1;
+    --brand-cream: #f9f5f0;
+    --brand-surface: #ffffffe9;
+    --feature-orders: #f59e0b;
+    --feature-customers: #3b82f6;
+    --feature-recipes: #10b981;
+    --feature-reporting: #8b5cf6;
+  }
+
+  body {
+    @apply bg-brand-cream text-brand-chocolate antialiased font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-brand-chocolate;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-3 bg-brand-chocolate text-white rounded-md font-medium active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-3 bg-brand-dough/20 text-brand-chocolate rounded-md font-medium active:scale-95 transition-all flex items-center justify-center gap-2;
+  }
+
+  .card {
+    @apply p-4 bg-brand-surface dark:bg-white/5 rounded-md border border-brand-chocolate/5 shadow-sm;
+  }
+
+  /* Hide number input spinners */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .glass-skeleton {
+    @apply relative overflow-hidden bg-brand-chocolate/[0.03] backdrop-blur-sm rounded-lg;
+  }
+  .glass-skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Hide scrollbars globally */
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Bottom Sheet Animation */
+.bottom-sheet-enter {
+  transform: translateY(100%);
+}
+.bottom-sheet-enter-active {
+  transform: translateY(0);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bottom-sheet-exit {
+  transform: translateY(0);
+}
+.bottom-sheet-exit-active {
+  transform: translateY(100%);
+  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Print Styles */
+@media print {
+  /* Hide the entire application by default */
+  #root {
+    display: none !important;
+  }
+
+  /* Reset body and html for print */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure only the receipt is visible and takes up the whole page */
+  #print-portal-container {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: visible !important;
+  }
+
+  #printable-receipt {
+    display: flex !important;
+    flex-direction: column;
+    padding: 40px !important;
+    background: white !important;
+    page-break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Force icons and colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+
+
+
