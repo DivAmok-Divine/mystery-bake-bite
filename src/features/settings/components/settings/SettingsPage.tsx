@@ -4,6 +4,20 @@ import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench } from 'lucide-r
 import { useDeveloperTools } from '../../../../mock-data/index.tsx'
 import { EquipmentList } from '../eqipments/EquipmentList.tsx'
 
+interface SettingsItem {
+  label: string
+  value: string | undefined
+  icon: any
+  action?: () => void
+  actionLabel?: string
+  disabled?: boolean
+}
+
+interface SettingsSection {
+  title: string
+  items: SettingsItem[]
+}
+
 export const SettingsPage: React.FC = () => {
   const { user, isAdmin, login, logout } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
@@ -13,7 +27,7 @@ export const SettingsPage: React.FC = () => {
     return <EquipmentList onBack={() => setShowEquipment(false)} />
   }
 
-  const sections = [
+  const sections: SettingsSection[] = [
     {
       title: 'Account',
       items: [
@@ -21,7 +35,6 @@ export const SettingsPage: React.FC = () => {
           label: 'User Role', 
           value: isAdmin ? 'Owner (Admin)' : 'Staff Member', 
           icon: Shield, 
-          // Button to toggle between Admin and Staff permissions for testing
           action: () => login(isAdmin ? 'staff' : 'admin'),
           actionLabel: isAdmin ? 'Switch to Staff' : 'Switch to Admin'
         },
@@ -30,7 +43,6 @@ export const SettingsPage: React.FC = () => {
           label: 'Equipments', 
           value: 'Manage ovens, mixers & more', 
           icon: Wrench,
-          // Button to navigate to the Equipment Management sub-page
           action: () => setShowEquipment(true)
         },
         { label: 'Slogan', value: 'Unveiling the uniqueness of a recipe', icon: ChevronRight },
@@ -39,11 +51,10 @@ export const SettingsPage: React.FC = () => {
     {
       title: 'Preferences',
       items: [
-        // Button to toggle dark mode (Currently a placeholder alert)
         { label: 'Dark Mode', value: 'System', icon: Moon, action: () => alert('Theme switching coming soon!') },
       ]
     },
-    developerToolsSection,
+    developerToolsSection as SettingsSection,
     {
       title: 'Business Information',
       items: [
@@ -51,6 +62,7 @@ export const SettingsPage: React.FC = () => {
       ]
     }
   ]
+
 
   return (
     <div className="flex flex-col gap-2">
