@@ -81,7 +81,7 @@ export const SettingsPage: React.FC = () => {
               {section.items.map((item, j) => (
                 <div 
                   key={j} 
-                  onClick={!item.disabled ? item.action : undefined}
+                  onClick={(!item.disabled && item.action) ? item.action : undefined}
                   className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
                 >
                   <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export const SettingsPage: React.FC = () => {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (!item.disabled) item.action();
+                        if (!item.disabled && item.action) item.action();
                       }}
                       disabled={item.disabled}
                       className={`text-[10px] font-bold text-brand-chocolate bg-brand-dough px-3 py-1.5 rounded-md transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dough/80'}`}
