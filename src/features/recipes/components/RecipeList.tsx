@@ -23,9 +23,23 @@ export const RecipeList: React.FC = () => {
 
 
 
+  const navigateItem = (direction: 'next' | 'prev', list = filteredRecipes, currentItem = viewingRecipe || editingRecipe) => {
+    if (!currentItem || list.length <= 1) return
+    const currentIndex = list.findIndex(r => r.id === currentItem.id)
+    if (currentIndex === -1) return
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (newIndex >= list.length) newIndex = 0
+    if (newIndex < 0) newIndex = list.length - 1
+    
+    const nextItem = list[newIndex]
+    if (viewingRecipe) setViewingRecipe(nextItem)
+    if (editingRecipe) setEditingRecipe(nextItem)
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-6 px-6 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Secret Recipes</h1>
           <button 
@@ -121,7 +135,11 @@ export const RecipeList: React.FC = () => {
       <BottomSheet 
         isOpen={!!viewingRecipe} 
         onClose={() => setViewingRecipe(null)} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={viewingRecipe?.id}
         title={viewingRecipe?.title || 'Recipe Details'}
+        subtitle="View full recipe ingredients and instructions"
       >
         {viewingRecipe && <RecipeDetails recipe={viewingRecipe} />}
       </BottomSheet>
@@ -131,6 +149,7 @@ export const RecipeList: React.FC = () => {
         isOpen={isAddingRecipe} 
         onClose={() => setIsAddingRecipe(false)} 
         title="Add Secret Recipe"
+        subtitle="Create a new formula for your bakery"
       >
         <RecipeForm onSuccess={() => setIsAddingRecipe(false)} />
       </BottomSheet>
@@ -139,7 +158,11 @@ export const RecipeList: React.FC = () => {
       <BottomSheet 
         isOpen={!!editingRecipe} 
         onClose={() => setEditingRecipe(null)} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={editingRecipe?.id}
         title="Edit Secret Recipe"
+        subtitle="Modify recipe ingredients and instructions"
       >
         {editingRecipe && (
           <RecipeForm 

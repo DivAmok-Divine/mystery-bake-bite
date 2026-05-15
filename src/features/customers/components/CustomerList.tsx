@@ -11,6 +11,7 @@ import { ConfirmModal } from '../../../shared/ui/molecules/ConfirmModal'
 import { CustomerSummary } from './CustomerSummary'
 import type { Customer } from '../../../shared/lib/db'
 
+
 export const CustomerList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
@@ -21,6 +22,7 @@ export const CustomerList: React.FC = () => {
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)
+
   const { customers, isLoading, deleteCustomer } = useCustomers()
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
 
@@ -73,9 +75,21 @@ export const CustomerList: React.FC = () => {
     setIsViewingCustomer(true)
   }
 
+  const navigateItem = (direction: 'next' | 'prev', list = filteredCustomers) => {
+    if (!selectedCustomer || list.length <= 1) return
+    const currentIndex = list.findIndex(c => c.id === selectedCustomer.id)
+    if (currentIndex === -1) return
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (newIndex >= list.length) newIndex = 0
+    if (newIndex < 0) newIndex = list.length - 1
+    
+    setSelectedCustomer(list[newIndex])
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-6 px-6 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Customers</h1>
           <div className="flex items-center gap-2">
@@ -95,6 +109,7 @@ export const CustomerList: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-2">
+
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <SearchBar 
@@ -219,6 +234,7 @@ export const CustomerList: React.FC = () => {
         isOpen={isAddingCustomer} 
         onClose={() => setIsAddingCustomer(false)} 
         title="Add Customer"
+        subtitle="Add a new customer to your database"
       >
         <CustomerForm onSuccess={() => setIsAddingCustomer(false)} />
       </BottomSheet>
@@ -236,20 +252,28 @@ export const CustomerList: React.FC = () => {
           setIsNavigatingFromSummary(false)
           setIsShowingSummary(true)
         } : undefined}
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedCustomer?.id}
         title="Customer Profile"
+        subtitle="View customer information and history"
       >
         {selectedCustomer && <CustomerDetails customer={selectedCustomer} />}
       </BottomSheet>
 
-      {/* Edit Customer */}
       <BottomSheet 
         isOpen={isEditingCustomer} 
         onClose={() => {
           setIsEditingCustomer(false)
           setSelectedCustomer(null)
         }} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedCustomer?.id}
         title="Edit Customer"
+        subtitle="Modify customer contact details"
       >
+
         {selectedCustomer && (
           <CustomerForm 
             onSuccess={() => {

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Users, UserCheck, UserX, Crown, ShoppingBag, Calendar } from 'lucide-react'
+import { Users, UserCheck, UserX, Crown, ShoppingBag, Calendar, Info } from 'lucide-react'
+
 import type { Customer } from '../../../shared/lib/db'
 
 interface CustomerSummaryProps {
@@ -31,12 +32,19 @@ export const CustomerSummary: React.FC<CustomerSummaryProps> = ({ customers, onV
   return (
     <div className="flex flex-col gap-5 pt-2 pb-6">
       {/* Hero Card: Total Customers */}
-      <div className="p-5 rounded-md border border-brand-chocolate/10 bg-brand-chocolate/5 shadow-sm flex flex-col items-center gap-1.5">
-        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-brand-chocolate shadow-sm">
-          <Users size={22} />
+      <div className="p-6 rounded-md bg-brand-chocolate text-white shadow-xl flex flex-col items-center gap-2 relative overflow-hidden text-center">
+        {/* Background Watermark */}
+        <div className="absolute -right-10 -bottom-10 opacity-10 transform rotate-12">
+          <Users size={160} />
         </div>
-        <span className="text-sm font-medium text-brand-chocolate/60 tracking-wider">Total Customers</span>
-        <span className="text-4xl font-display text-brand-chocolate">{customers.length}</span>
+        
+        <span className="text-xs font-bold tracking-widest opacity-60">Total Customers</span>
+        
+        <h2 className="text-4xl font-display leading-none text-white">
+          {customers.length} <span className="text-lg opacity-40">Lovers</span>
+        </h2>
+
+        <p className="text-[10px] opacity-40 font-medium">People who enjoy your bites</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -46,17 +54,40 @@ export const CustomerSummary: React.FC<CustomerSummaryProps> = ({ customers, onV
           {customerStats.map((stat, idx) => (
             <div 
               key={idx}
-              className="flex items-center justify-between px-2.5 py-2 rounded-md border border-brand-chocolate/5 bg-white shadow-sm"
+              className="flex items-center justify-between px-2.5 py-2 rounded-md border border-brand-chocolate/5 bg-white shadow-sm group relative"
             >
               <div className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-md ${stat.bg} ${stat.color} flex items-center justify-center flex-shrink-0`}>
                   <stat.icon size={14} />
                 </div>
-                <span className="text-xs font-medium text-brand-chocolate/70">{stat.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-brand-chocolate/70">{stat.label}</span>
+                  {(stat.label === 'Active' || stat.label === 'Inactive') && (
+                    <div className="relative group/tooltip">
+                      <div className="text-brand-chocolate/40 cursor-help transition-all hover:text-brand-chocolate group-hover/tooltip:scale-110">
+                        <Info size={14} strokeWidth={2.5} /> 
+                      </div>
+
+
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-[#3D261C] text-white text-[10px] rounded-lg shadow-2xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-all transform scale-95 group-hover/tooltip:scale-100 z-50 text-center leading-relaxed">
+                        <p className="font-bold mb-1 underline decoration-white/20 underline-offset-2">
+                          {stat.label} Customer
+                        </p>
+                        {stat.label === 'Active' 
+                          ? "Any customer who has placed at least one order within the last 30 days." 
+                          : "Any customer who hasn't placed an order in more than 30 days."
+                        }
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#3D261C]" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
               </div>
               <span className={`text-base font-display ${stat.color}`}>{stat.value}</span>
             </div>
           ))}
+
         </div>
 
         {/* Right Column: Insights */}

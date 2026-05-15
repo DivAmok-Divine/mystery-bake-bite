@@ -4,8 +4,9 @@ import { FeatureRenderer } from './FeatureRenderer.tsx'
 import { SplashScreen } from '../shared/ui/molecules/SplashScreen'
 
 function App() {
-  const [currentFeature, setCurrentFeature] = useState<'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products'>('orders')
-  const [previousFeature, setPreviousFeature] = useState<'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products'>('orders')
+  const [currentFeature, setCurrentFeature] = useState<'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products' | 'pantry'>('orders')
+  const [previousFeature, setPreviousFeature] = useState<'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products' | 'pantry'>('orders')
+
   const [isSplashDone, setIsSplashDone] = useState(false)
 
   const handleFeatureChange = (newFeature: typeof currentFeature) => {

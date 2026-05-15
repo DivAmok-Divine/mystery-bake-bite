@@ -29,11 +29,14 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({
           <button
             key={option}
             onClick={() => onToggle(option)}
-            className={`px-4 h-full rounded-md text-[10px] font-bold whitespace-nowrap transition-all flex items-center justify-center flex-shrink-0 snap-start min-w-[72px] relative ${
+            className={`px-4 h-full rounded-md text-[10px] font-bold whitespace-nowrap transition-all flex items-center justify-center flex-shrink-0 snap-start relative ${
+              option === 'All' ? 'min-w-[48px]' : 'min-w-[72px]'
+            } ${
               activeOptions.includes(option) 
                 ? "bg-brand-chocolate text-white shadow-md" 
                 : "bg-brand-chocolate/5 text-brand-chocolate/60 hover:bg-brand-chocolate/10"
             }`}
+
           >
             {option}
             {/* Floating Count Badge - Only shows when active */}

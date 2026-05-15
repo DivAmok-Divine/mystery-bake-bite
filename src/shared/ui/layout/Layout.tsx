@@ -1,11 +1,11 @@
 import React from 'react'
-import { ShoppingBag, Users, BookOpen, BarChart3, Menu, Package, X } from 'lucide-react'
+import { ShoppingBag, Users, BookOpen, BarChart3, Menu, Package, X, ShoppingCart } from 'lucide-react'
 import { useAuth } from '../../../features/auth/api/AuthContext'
 
 interface LayoutProps {
   children: React.ReactNode
-  currentFeature: 'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products'
-  onFeatureChange: (feature: 'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products') => void
+  currentFeature: 'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products' | 'pantry'
+  onFeatureChange: (feature: 'orders' | 'customers' | 'recipes' | 'reporting' | 'settings' | 'products' | 'pantry') => void
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeatureChange }) => {
@@ -13,11 +13,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
   
   const navItems = [
     { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-    { id: 'products', icon: Package, label: 'Products' },
+    { id: 'products', icon: Package, label: 'Bites' },
     { id: 'customers', icon: Users, label: 'Customers' },
     { id: 'recipes', icon: BookOpen, label: 'Recipes' },
+    { id: 'pantry', icon: ShoppingCart, label: 'Pantry' },
     ...(isAdmin ? [{ id: 'reporting' as const, icon: BarChart3, label: 'Reports' }] : []),
   ] as const
+
+
 
   const touchStart = React.useRef<{ x: number, y: number } | null>(null)
   const minSwipeDistance = 50
@@ -74,7 +77,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
         </button>
       </header>
 
-      <main className="flex-1 p-6 pt-0">
+      <main className="flex-1 p-3 pt-0">
         {children}
       </main>
 

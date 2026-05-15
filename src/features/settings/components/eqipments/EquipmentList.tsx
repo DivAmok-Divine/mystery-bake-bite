@@ -15,6 +15,7 @@ import { EquipmentDetails } from './EquipmentDetails'
 import { EquipmentSummary } from './EquipmentSummary'
 import type { Equipment } from '../../../../shared/lib/db'
 
+
 import { CategoryFilter, FilterToggle } from '../../../../shared/ui/molecules/CategoryFilter'
 import { StatusBadge } from '../../../../shared/ui/atoms/StatusBadge'
 
@@ -30,6 +31,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
   const [isAdding, setIsAdding] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null)
   const [viewingItem, setViewingItem] = useState<Equipment | null>(null)
   const [itemToDelete, setItemToDelete] = useState<number | null>(null)
@@ -104,9 +106,23 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
 
 
 
+  const navigateItem = (direction: 'next' | 'prev', list = filteredEquipment, currentItem = viewingItem || selectedItem) => {
+    if (!currentItem || list.length <= 1) return
+    const currentIndex = list.findIndex(e => e.id === currentItem.id)
+    if (currentIndex === -1) return
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (newIndex >= list.length) newIndex = 0
+    if (newIndex < 0) newIndex = list.length - 1
+    
+    const nextItem = list[newIndex]
+    if (viewingItem) setViewingItem(nextItem)
+    if (selectedItem) setSelectedItem(nextItem)
+  }
+
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-6 px-6 flex flex-col gap-3 border-b border-brand-chocolate/5">
+    <div className="flex flex-col gap-4">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 
@@ -134,6 +150,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
         </div>
 
         <div className="flex flex-col gap-2">
+
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <SearchBar 
@@ -155,23 +172,29 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden flex flex-col gap-2"
+                className="overflow-hidden flex flex-col gap-0.5 mt-1"
               >
-                <CategoryFilter 
-                  show={equipment.length > 0}
-                  options={displayCategories}
-                  activeOptions={activeCategories}
-                  onToggle={toggleCategory}
-                  getCount={getCategoryCount}
-                />
-
-                <CategoryFilter 
-                  show={equipment.length > 0}
-                  options={displayStatuses}
-                  activeOptions={activeStatuses}
-                  onToggle={toggleStatus}
-                  getCount={getStatusCount}
-                />
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-brand-chocolate/30 px-1 -mb-1 z-10 tracking-tighter">Categories</p>
+                  <CategoryFilter 
+                    show={equipment.length > 0}
+                    options={displayCategories}
+                    activeOptions={activeCategories}
+                    onToggle={toggleCategory}
+                    getCount={getCategoryCount}
+                  />
+                </div>
+                
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-bold text-brand-chocolate/30 px-1 -mb-1 z-10 tracking-tighter">Status</p>
+                  <CategoryFilter 
+                    show={equipment.length > 0}
+                    options={displayStatuses}
+                    activeOptions={activeStatuses}
+                    onToggle={toggleStatus}
+                    getCount={getStatusCount}
+                  />
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -179,9 +202,10 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
       </header>
 
       {isLoading ? (
-        <div className="py-20 text-center">
-          <div className="w-10 h-10 border-4 border-brand-chocolate/10 border-t-brand-chocolate rounded-full animate-spin mx-auto"></div>
-          <p className="text-brand-chocolate/40 text-sm mt-4 font-bold italic">Gathering your gear...</p>
+        <div className="flex flex-col gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-32 glass-skeleton rounded-md" />
+          ))}
         </div>
       ) : filteredEquipment.length === 0 ? (
         <div className="py-20 text-center flex flex-col items-center gap-3 bg-brand-chocolate/5 rounded-md border border-dashed border-brand-chocolate/10">
@@ -258,7 +282,11 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
           setIsAdding(false)
           setSelectedItem(null)
         }} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedItem?.id}
         title={selectedItem ? 'Edit Equipment' : 'New Equipment'}
+        subtitle={selectedItem ? 'Modify equipment details and status' : 'Add a new asset to your kitchen'}
       >
         <EquipmentForm 
           onSuccess={() => {
@@ -269,11 +297,14 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
         />
       </BottomSheet>
 
-      {/* View Details */}
       <BottomSheet 
         isOpen={!!viewingItem} 
         onClose={() => setViewingItem(null)} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={viewingItem?.id}
         title="Equipment Details"
+        subtitle="View full asset history and notes"
       >
         {viewingItem && <EquipmentDetails equipment={viewingItem} />}
       </BottomSheet>

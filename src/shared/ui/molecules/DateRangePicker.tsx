@@ -16,6 +16,8 @@ interface DateRangePickerProps {
   value: DateRange
   onChange: (range: DateRange) => void
   onClose: () => void
+  confirmLabel?: string
+  onConfirm?: () => void
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -24,7 +26,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   value,
   onChange,
   onClose,
+  confirmLabel,
+  onConfirm
 }) => {
+
   const [currentMonth, setCurrentMonth] = useState(
     value.start ?? new Date()
   )
@@ -156,13 +161,26 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           {' → '}
           {value.end ? format(value.end, 'MMM d, yyyy') : 'To'}
         </div>
-        <button
-          type="button"
-          onClick={() => onChange({ start: null, end: null })}
-          className="text-xs font-bold underline text-brand-chocolate/40 hover:text-brand-chocolate"
-        >
-          Reset
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => onChange({ start: null, end: null })}
+            className="text-xs font-bold underline text-brand-chocolate/40 hover:text-brand-chocolate"
+          >
+            Reset
+          </button>
+          {confirmLabel && onConfirm && (
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="text-xs font-bold underline text-brand-chocolate/40 hover:text-brand-chocolate"
+            >
+              {confirmLabel}
+            </button>
+          )}
+        </div>
+
+
       </div>
     </div>
   )

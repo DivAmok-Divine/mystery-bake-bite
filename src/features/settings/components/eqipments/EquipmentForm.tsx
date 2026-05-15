@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState} from 'react'
 import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Wrench, Tag, Activity, Calendar as CalendarIcon, 
@@ -7,7 +7,9 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Calendar } from '../../../../shared/ui/molecules/Calendar'
+import { useClickOutside } from '../../../../shared/lib/hooks'
 import type { Equipment } from '../../../../shared/lib/db'
+
 
 interface EquipmentFormProps {
   onSuccess: () => void
@@ -40,22 +42,9 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
   const [isPurchaseCalendarOpen, setIsPurchaseCalendarOpen] = useState(false)
   const [isMaintainedCalendarOpen, setIsMaintainedCalendarOpen] = useState(false)
 
-  const categoryRef = useRef<HTMLDivElement>(null)
-  const statusRef = useRef<HTMLDivElement>(null)
+  const categoryRef = useClickOutside(() => setIsCategoryDropdownOpen(false))
+  const statusRef = useClickOutside(() => setIsStatusDropdownOpen(false))
 
-  // Close dropdowns on click away
-  useEffect(() => {
-    const handleClickAway = (e: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
-        setIsCategoryDropdownOpen(false)
-      }
-      if (statusRef.current && !statusRef.current.contains(e.target as Node)) {
-        setIsStatusDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickAway)
-    return () => document.removeEventListener('mousedown', handleClickAway)
-  }, [])
 
   const validate = () => {
     const newErrors: Record<string, string> = {}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useOrders } from '../api/useOrders'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { useProducts } from '../../products/api/useProducts'
@@ -10,6 +10,8 @@ import {
 import { format } from 'date-fns'
 import { CustomerForm } from '../../customers/components/CustomerForm'
 import { Calendar } from '../../../shared/ui/molecules/Calendar'
+import { useClickOutside } from '../../../shared/lib/hooks'
+
 
 import { db, type Order } from '../../../shared/lib/db'
 
@@ -38,22 +40,9 @@ export const OrderForm: React.FC<OrderFormProps> = ({ onSuccess, initialData }) 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   
-  const customerDropdownRef = useRef<HTMLDivElement>(null)
-  const productDropdownRef = useRef<HTMLDivElement>(null)
+  const customerDropdownRef = useClickOutside(() => setIsDropdownOpen(false))
+  const productDropdownRef = useClickOutside(() => setIsProductDropdownOpen(false))
 
-  // Close dropdowns on click away
-  useEffect(() => {
-    const handleClickAway = (e: MouseEvent) => {
-      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false)
-      }
-      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target as Node)) {
-        setIsProductDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickAway)
-    return () => document.removeEventListener('mousedown', handleClickAway)
-  }, [])
   
   // Try to parse initial items if editing
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>(() => {
@@ -362,10 +351,15 @@ export const OrderForm: React.FC<OrderFormProps> = ({ onSuccess, initialData }) 
         {/* Selected Items List */}
         <div className="flex flex-col gap-2">
           {selectedItems.length === 0 ? (
-            <div className="py-8 border-2 border-dashed border-brand-chocolate/10 rounded-md flex flex-col items-center justify-center text-brand-chocolate/30">
-              <ShoppingCart size={24} strokeWidth={1} />
-              <p className="text-[10px] font-bold mt-2">No items added yet</p>
-            </div>
+            <div 
+            onClick={() => setIsProductDropdownOpen(true)}
+            className="py-8 border-2 border-dashed border-brand-chocolate/10 rounded-md flex flex-col items-center justify-center text-brand-chocolate/30 cursor-pointer active:bg-brand-chocolate/5 transition-colors"
+          >
+            <Plus size={22} strokeWidth={1.5} className="mb-1 text-brand-chocolate/20" />
+            <ShoppingCart size={20} strokeWidth={1} />
+            <p className="text-[10px] font-bold mt-2">No items added yet</p>
+            <p className="text-[9px] mt-0.5 text-brand-chocolate/20">Tap to add a product</p>
+          </div>
           ) : (
             selectedItems.map(item => (
               <div key={item.productId} className="flex items-center justify-between p-3 bg-brand-cream/10 border border-brand-chocolate/5 rounded-md group">
