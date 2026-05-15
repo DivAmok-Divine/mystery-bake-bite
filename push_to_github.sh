@@ -8,7 +8,7 @@ CHOCOLATE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
-echo -e "${GOLD}   🥯 PUSHING TO MYSTERY BAKE BITE   ${NC}"
+echo -e "${GOLD}   🥯 PUSHING MONOREPO TO GITHUB   ${NC}"
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
 
 # Ask for the description (commit message)
@@ -17,19 +17,24 @@ read -p "> " description
 
 # Set default if empty
 if [ -z "$description" ]; then
-  description="Chore: Update Mystery Bake Bite and synchronize codebase"
+  description="Chore: Update Mystery Bake Bite monorepo and synchronize workspaces"
   echo -e "${CHOCOLATE}Using default: $description${NC}"
 fi
 
 
-echo -e "\n${CHOCOLATE}Step 1: Staging changes...${NC}"
+echo -e "\n${CHOCOLATE}Step 1: Staging all changes...${NC}"
 git add .
 
 echo -e "${CHOCOLATE}Step 2: Committing with description...${NC}"
 git commit -m "$description"
 
-echo -e "${CHOCOLATE}Step 3: Pushing to GitHub...${NC}"
-git push origin main
+echo -e "${CHOCOLATE}Step 3: Finding current branch...${NC}"
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+echo -e "${GOLD}Current branch is: $current_branch${NC}"
 
-echo -e "\n${GOLD}✨ Success! Your code is now lives on GitHub.${NC}"
+echo -e "${CHOCOLATE}Step 4: Pushing to GitHub...${NC}"
+git push origin "$current_branch"
+
+echo -e "\n${GOLD}✨ Success! Your code is now live on GitHub.${NC}"
+echo -e "${CHOCOLATE}🚀 Vercel will automatically pick this up and deploy the respective workspaces.${NC}"
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
