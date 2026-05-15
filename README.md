@@ -1,7 +1,7 @@
 # 🥐 Mystery Bake Bite Monorepo
 
 [![Tech Stack](https://img.shields.io/badge/Stack-React%20%7C%20Vite%20%7C%20Dexie-blueviolet)](https://github.com/divinek/MysteryBakeBite)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 
 A high-performance, offline-first monorepo powering the **Mystery Bake Bite** ecosystem. This repository manages both the administrative operations and the customer-facing experience using a unified shared logic layer.
 
@@ -98,7 +98,7 @@ This monorepo is optimized for **Vercel** deployments.
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is Proprietary. All Rights Reserved. © 2026 Mystery Bake Bite.
 
 ---
 
