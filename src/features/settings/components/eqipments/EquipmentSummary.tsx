@@ -32,13 +32,21 @@ export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ equipment })
   return (
     <div className="flex flex-col gap-5 pt-2 pb-6">
       {/* Hero Card: Total Equipment */}
-      <div className="p-5 rounded-md border border-brand-chocolate/10 bg-brand-chocolate/5 shadow-sm flex flex-col items-center gap-1.5">
-        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-brand-chocolate shadow-sm">
-          <Wrench size={22} />
+      <div className="p-6 rounded-md bg-brand-chocolate text-white shadow-xl flex flex-col items-center gap-2 relative overflow-hidden text-center">
+        {/* Background Watermark */}
+        <div className="absolute -right-10 -bottom-10 opacity-10 transform rotate-12">
+          <Wrench size={160} />
         </div>
-        <span className="text-sm font-medium text-brand-chocolate/60 tracking-wider">Total Equipment</span>
-        <span className="text-4xl font-display text-brand-chocolate">{equipment.length}</span>
+        
+        <span className="text-xs font-bold tracking-widest opacity-60">Total Equipment</span>
+        
+        <h2 className="text-4xl font-display leading-none text-white">
+          {equipment.length} <span className="text-lg opacity-40">Assets</span>
+        </h2>
+
+        <p className="text-[10px] opacity-40 font-medium">Essential tools for your kitchen</p>
       </div>
+
 
       <div className="grid grid-cols-2 gap-3">
         {/* Left Column: Health */}

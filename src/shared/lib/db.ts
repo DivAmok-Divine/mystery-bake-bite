@@ -63,6 +63,32 @@ export interface Equipment {
   createdAt: Date;
 }
 
+export interface PantryItem {
+  id?: number;
+  name: string;
+  category: string;
+  currentStock: number;
+  minStock: number;
+  unit: string; // e.g. kg, liters, crates, bags
+  lastPrice: number;
+  status: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  notes?: string;
+  updatedAt: Date;
+  createdAt: Date;
+}
+
+export interface PantryHistory {
+  id?: number;
+  itemId: number;
+  itemName: string;
+  type: 'Restock' | 'Usage' | 'Waste' | 'Adjustment';
+  quantity: number; // The delta (+ or -)
+  unit: string;
+  pricePerUnit: number; // At the time of transaction
+  totalValue: number;
+  createdAt: Date;
+}
+
 export class MysteryBakeDB extends Dexie {
   customers!: Table<Customer>;
   orders!: Table<Order>;
@@ -70,18 +96,24 @@ export class MysteryBakeDB extends Dexie {
   products!: Table<Product>;
   productCategories!: Table<ProductCategory>;
   equipment!: Table<Equipment>;
+  pantry!: Table<PantryItem>;
+  pantryHistory!: Table<PantryHistory>;
 
   constructor() {
     super('MysteryBakeDB');
-    this.version(6).stores({
+    this.version(8).stores({
       customers: '++id, name, phone, status',
       orders: '++id, orderNumber, customerId, status, deadline',
       recipes: '++id, title',
       products: '++id, name, category',
       productCategories: '++id, name',
-      equipment: '++id, name, category, status'
+      equipment: '++id, name, category, status',
+      pantry: '++id, name, category, status',
+      pantryHistory: '++id, itemId, type, createdAt'
     });
   }
 }
 
+
 export const db = new MysteryBakeDB();
+

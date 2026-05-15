@@ -20,7 +20,7 @@
 
 ## 🔒 Proprietary Notice.
 
-This software is **Proprietary** and owned by **DivAmok Corp. ltd**. All rights are reserved. Unauthorized copying, modification, or redistribution of this software, via any medium, is strictly prohibited.
+This software is **Proprietary** and owned by **DivAmok Corp. ltd**. All rights are reserved. Unauthorized copying, modification, or redistribution of this software, via any medium, is strictly prohibited..
 
 ---
 

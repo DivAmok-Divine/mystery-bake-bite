@@ -4,17 +4,21 @@ export type StatusType = 'Pending' | 'Completed' | 'Cancelled' | 'Active' | 'Ina
 
 export const getStatusTextClass = (status: string) => {
   switch (status) {
-    case 'Pending':
-    case 'Maintenance':
-      return 'text-amber-700'
     case 'Completed':
     case 'Active':
     case 'Operational':
+    case 'In Stock':
       return 'text-emerald-600'
     case 'Cancelled':
     case 'Inactive':
     case 'Broken':
+    case 'Out of Stock':
       return 'text-red-500/60'
+    case 'Pending':
+    case 'Maintenance':
+    case 'Low Stock':
+      return 'text-amber-700'
+
     default:
       return 'text-gray-600'
   }
@@ -24,15 +28,19 @@ export const getStatusBgClass = (status: string) => {
   switch (status) {
     case 'Pending':
     case 'Maintenance':
+    case 'Low Stock':
       return 'bg-amber-100'
     case 'Completed':
     case 'Active':
     case 'Operational':
+    case 'In Stock':
       return 'bg-emerald-100'
     case 'Cancelled':
     case 'Inactive':
     case 'Broken':
+    case 'Out of Stock':
       return 'bg-red-100'
+
     default:
       return 'bg-gray-100'
   }

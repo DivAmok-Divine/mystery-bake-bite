@@ -13,6 +13,7 @@ import { ProductDetails } from './ProductDetails'
 import { ConfirmModal } from '../../../shared/ui/molecules/ConfirmModal'
 import type { Product } from '../../../shared/lib/db'
 
+
 import { SearchBar } from '../../../shared/ui/molecules/SearchBar'
 import { CategoryFilter, FilterToggle } from '../../../shared/ui/molecules/CategoryFilter'
 import { ProductSummary } from './ProductSummary'
@@ -32,6 +33,7 @@ export const ProductList: React.FC = () => {
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)
+
 
   const handleView = (product: Product) => {
     setSelectedProduct(product)
@@ -82,9 +84,21 @@ export const ProductList: React.FC = () => {
   // Dynamic category tabs
   const displayCategories = ['All', ...categories.map(c => c.name)]
 
+  const navigateItem = (direction: 'next' | 'prev', list = filteredProducts) => {
+    if (!selectedProduct || list.length <= 1) return
+    const currentIndex = list.findIndex(p => p.id === selectedProduct.id)
+    if (currentIndex === -1) return
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (newIndex >= list.length) newIndex = 0
+    if (newIndex < 0) newIndex = list.length - 1
+    
+    setSelectedProduct(list[newIndex])
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-6 px-6 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Our Bites</h1>
           <div className="flex items-center gap-2">
@@ -104,6 +118,7 @@ export const ProductList: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-2">
+
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <SearchBar 
@@ -263,6 +278,7 @@ export const ProductList: React.FC = () => {
         isOpen={isAddFormOpen}
         onClose={() => setIsAddFormOpen(false)}
         title="Add New Bite"
+        subtitle="Create a new product for your menu"
       >
         <ProductForm onSuccess={() => setIsAddFormOpen(false)} />
       </BottomSheet>
@@ -281,9 +297,15 @@ export const ProductList: React.FC = () => {
           setIsNavigatingFromSummary(false)
           setIsShowingSummary(true)
         } : undefined}
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedProduct?.id}
         title="Bite Details"
+        subtitle="View full product information"
       >
-        {selectedProduct && <ProductDetails product={selectedProduct} />}
+        {selectedProduct && (
+          <ProductDetails product={selectedProduct} />
+        )}
       </BottomSheet>
 
       {/* Edit Product */}
@@ -293,8 +315,13 @@ export const ProductList: React.FC = () => {
           setIsEditingProduct(false)
           setSelectedProduct(null)
         }} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedProduct?.id}
         title="Edit Bite"
+        subtitle="Modify product details and pricing"
       >
+
         {selectedProduct && (
           <ProductForm 
             onSuccess={() => {

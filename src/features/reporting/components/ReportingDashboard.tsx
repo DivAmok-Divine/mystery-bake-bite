@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useOrders } from '../../orders/api/useOrders'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { 
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { format, isSameMonth, isSameDay, subDays, subMonths, isWithinInterval } from 'date-fns'
 import { DateRangePicker, type DateRange } from '../../../shared/ui/molecules/DateRangePicker'
+import { useClickOutside } from '../../../shared/lib/hooks'
+
 
 export const ReportingDashboard: React.FC = () => {
   const { orders } = useOrders()
@@ -15,18 +17,8 @@ export const ReportingDashboard: React.FC = () => {
   const [timeFrame, setTimeFrame] = useState<'current' | 'last' | 'all' | 'custom'>('current')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [customRange, setCustomRange] = useState<DateRange>({ start: null, end: null })
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useClickOutside(() => setIsDropdownOpen(false))
 
-  // Close dropdown on click away
-  useEffect(() => {
-    const handleClickAway = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickAway)
-    return () => document.removeEventListener('mousedown', handleClickAway)
-  }, [])
 
   // Filter Logic
   const now = new Date()
@@ -102,7 +94,7 @@ export const ReportingDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-4 -mx-6 px-6 flex items-start justify-between border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-4 -mx-3 px-3 flex items-start justify-between border-b border-brand-chocolate/5">
         <div>
           <h1 className="text-3xl font-display">Insights</h1>
           <p className="text-brand-chocolate/40 text-sm">

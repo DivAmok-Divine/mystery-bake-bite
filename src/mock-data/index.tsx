@@ -8,12 +8,14 @@ export * from './products'
 export * from './orders'
 export * from './recipes'
 export * from './equipment'
+export * from './pantry'
 
 import { mockCustomers } from './customers'
 import { mockProducts, mockCategories } from './products'
 import { mockOrders } from './orders'
 import { mockRecipes } from './recipes'
 import { mockEquipment } from './equipment'
+import { mockPantry } from './pantry'
 
 export const seedDatabase = async () => {
   await db.transaction('rw', [
@@ -22,7 +24,8 @@ export const seedDatabase = async () => {
     db.productCategories, 
     db.orders, 
     db.recipes, 
-    db.equipment
+    db.equipment,
+    db.pantry
   ], async () => {
     await Promise.all([
       db.customers.clear(),
@@ -30,7 +33,8 @@ export const seedDatabase = async () => {
       db.products.clear(),
       db.orders.clear(),
       db.recipes.clear(),
-      db.equipment.clear()
+      db.equipment.clear(),
+      db.pantry.clear()
     ])
     
     // Calculate and add customers with proper status
@@ -55,6 +59,7 @@ export const seedDatabase = async () => {
     await db.orders.bulkAdd(mockOrders)
     await db.recipes.bulkAdd(mockRecipes)
     await db.equipment.bulkAdd(mockEquipment)
+    await db.pantry.bulkAdd(mockPantry)
   })
 }
 
@@ -65,7 +70,8 @@ export const clearDatabase = async () => {
     db.productCategories, 
     db.orders, 
     db.recipes, 
-    db.equipment
+    db.equipment,
+    db.pantry
   ], async () => {
     await Promise.all([
       db.customers.clear(),
@@ -73,10 +79,12 @@ export const clearDatabase = async () => {
       db.products.clear(),
       db.orders.clear(),
       db.recipes.clear(),
-      db.equipment.clear()
+      db.equipment.clear(),
+      db.pantry.clear()
     ])
   })
 }
+
 
 export const useDeveloperTools = () => {
   const [showSeedConfirm, setShowSeedConfirm] = useState(false)
