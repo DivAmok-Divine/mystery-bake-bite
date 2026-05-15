@@ -28,7 +28,7 @@ This software is **Proprietary** and owned by **DivAmok Corp. ltd**. All rights 
 
 **Mystery Bake Bite** is a bespoke, elegant, and highly responsive management dashboard tailored specifically for premium bakeries, pastry shops, and independent bakers. Engineered with a local-first philosophy, it allows business owners to manage their entire operation securely, offline, and blazing fast without relying on external cloud servers.
 
-Designed with a stunning "glassmorphism" aesthetic, warm chocolate branding, and buttery smooth micro-animations, the app ensures that managing your business is as delightful as the treats you bake.
+Designed with a stunning "glassmorphism" aesthetic, warm chocolate branding, and buttery smooth micro-animations, the app ensures that managing your business is as delightful as the treats you bake..
 
 ---
 
@@ -89,19 +89,16 @@ Make sure you have [Node.js](https://nodejs.org/) (v18+) installed.
    git clone https://github.com/DivAmok-Divine/mystery-bake-bite.git
    cd mystery-bake-bite
    ```
-
 2. **Install dependencies**
 
    ```bash
    npm install
    ```
-
 3. **Start the development server**
 
    ```bash
    npm run dev
    ```
-
 4. **Open the App**
    Navigate to `http://localhost:5173` in your browser.
 
