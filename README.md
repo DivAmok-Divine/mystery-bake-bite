@@ -27,27 +27,31 @@ graph TD
 
 ### 📂 Workspaces
 
-| Path | Name | Purpose |
-| :--- | :--- | :--- |
-| [`/backend`](./backend) | **Core Source of Truth** | Shared Dexie.js schemas, React hooks, and business logic. |
-| [`/management-system-frontend`](./management-system-frontend) | **Admin Dashboard** | Order management, inventory tracking, and recipe vault. |
-| [`/website-app-frontend`](./website-app-frontend) | **Customer Experience** | Public-facing menu and customer interaction. |
+| Path                                                          | Name                     | Purpose                                                   |
+| :------------------------------------------------------------ | :----------------------- | :-------------------------------------------------------- |
+| [`/backend`](./backend)                                       | **Core Source of Truth** | Shared Dexie.js schemas, React hooks, and business logic. |
+| [`/management-system-frontend`](./management-system-frontend) | **Admin Dashboard**      | Order management, inventory tracking, and recipe vault.   |
+| [`/website-app-frontend`](./website-app-frontend)             | **Customer Experience**  | Public-facing menu and customer interaction.              |
 
 ---
 
 ## 🚀 Professional Setup
 
 ### 1. Prerequisites
+
 - **Node.js**: v18.x or higher
 - **npm**: v7.x or higher (for Workspace support)
 
 ### 2. Installation
+
 Install dependencies for **all** workspaces from the root directory:
+
 ```bash
 npm install
 ```
 
 ### 3. Development Workflow
+
 We use a unified entry point to manage development servers:
 
 - **Start Management System**: `npm run dev:admin` (or `./start.sh` option 1)
@@ -61,18 +65,19 @@ We use a unified entry point to manage development servers:
 All frontends consume shared logic via TypeScript path aliases. This ensures that any change to the database schema or business rules in `/backend` is automatically reflected across the entire ecosystem.
 
 **Example Usage:**
+
 ```tsx
-import { useOrders } from '@backend/lib/hooks';
-import { db } from '@backend/lib/db';
+import { useOrders } from "@backend/lib/hooks";
+import { db } from "@backend/lib/db";
 ```
 
 ---
 
 ## 🚢 Deployment (Vercel)
 
-This monorepo is optimized for **Vercel** deployments. 
+This monorepo is optimized for **Vercel** deployments.
 
-1. **Management System**: 
+1. **Management System**:
    - Root Directory: `management-system-frontend`
    - Framework Preset: `Vite`
 2. **Website App**:
@@ -92,7 +97,9 @@ This monorepo is optimized for **Vercel** deployments.
 ---
 
 ## 📜 License
+
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-*Created with ❤️ for Mystery Bake Bite*
+
+_Created with ❤️ for Mystery Bake Bite_
