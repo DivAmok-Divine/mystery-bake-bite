@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import { 
   User, ShoppingCart, Calendar, 
   Wallet, StickyNote, ShoppingBag,
-  CheckCircle2, XCircle, Check, AlertTriangle 
+  CheckCircle2, XCircle, Check, AlertTriangle, Eye
 } from 'lucide-react'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import type { Order } from '@backend/lib/db'
@@ -11,9 +11,10 @@ import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
 
 interface OrderReceiptProps {
   order: Order
+  onViewCustomer?: () => void
 }
 
-export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order }) => {
+export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order, onViewCustomer }) => {
   return (
     <div id="printable-receipt" className="flex flex-col gap-3 pb-4">
       {/* Receipt Header (Print Only) */}
@@ -54,9 +55,20 @@ export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order }) => {
         <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2 px-1">
           <User size={12} /> Customer information
         </label>
-        <div className="bg-brand-surface border border-brand-chocolate/10 rounded-md p-4">
-          <p className="text-lg font-display text-brand-chocolate">{order.customerName}</p>
-          <p className="text-xs text-brand-chocolate/40 mt-1 italic">Linked to customer record #{order.customerId}</p>
+        <div className="bg-brand-surface border border-brand-chocolate/10 rounded-md p-4 flex items-center justify-between group">
+          <div>
+            <p className="text-lg font-display text-brand-chocolate">{order.customerName}</p>
+            <p className="text-xs text-brand-chocolate/40 mt-1 italic">Linked to customer record #{order.customerId}</p>
+          </div>
+          {onViewCustomer && (
+            <button 
+              onClick={onViewCustomer}
+              className="no-print w-10 h-10 rounded-full bg-feature-customers/5 text-feature-customers flex items-center justify-center hover:bg-feature-customers/10 transition-colors"
+              title="View customer profile"
+            >
+              <Eye size={18} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -188,18 +188,15 @@ export const CustomerList: React.FC = () => {
                   <h3 className="font-bold truncate group-hover/name:text-brand-chocolate transition-colors">{customer.name}</h3>
                 </button>
                 <div className="flex items-center gap-3 text-[10px] text-brand-chocolate/40 mt-1">
-                  <a href={`tel:${customer.phone}`} className="flex items-center gap-1.5 hover:text-brand-chocolate transition-colors shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <Phone size={10} className="shrink-0" />
                     <span>{customer.phone}</span>
-                  </a>
+                  </div>
                   {customer.email && (
-                    <a 
-                      href={`mailto:${customer.email}`} 
-                      className="flex items-center gap-1.5 hover:text-brand-chocolate transition-colors min-w-0"
-                    >
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <Mail size={10} className="shrink-0" />
                       <span className="truncate">{customer.email}</span>
-                    </a>
+                    </div>
                   )}
                 </div>
               </div>
