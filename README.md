@@ -30,7 +30,7 @@ graph TD
 | Path | Name | Purpose |
 | :--- | :--- | :--- |
 | [`/backend`](./backend) | **Core Source of Truth** | Shared Dexie.js schemas, React hooks, and business logic. |
-| [`/managment-system-frontend`](./managment-system-frontend) | **Admin Dashboard** | Order management, inventory tracking, and recipe vault. |
+| [`/management-system-frontend`](./management-system-frontend) | **Admin Dashboard** | Order management, inventory tracking, and recipe vault. |
 | [`/website-app-frontend`](./website-app-frontend) | **Customer Experience** | Public-facing menu and customer interaction. |
 
 ---
@@ -73,7 +73,7 @@ import { db } from '@backend/lib/db';
 This monorepo is optimized for **Vercel** deployments. 
 
 1. **Management System**: 
-   - Root Directory: `managment-system-frontend`
+   - Root Directory: `management-system-frontend`
    - Framework Preset: `Vite`
 2. **Website App**:
    - Root Directory: `website-app-frontend`
