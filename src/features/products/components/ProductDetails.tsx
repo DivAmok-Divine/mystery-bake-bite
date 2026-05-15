@@ -12,7 +12,12 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
       {/* Product Image */}
       <div className="w-full aspect-square max-h-72 bg-brand-cream/20 rounded-lg overflow-hidden relative flex items-center justify-center">
         {(product.images && product.images.length > 0) ? (
-          <div className="flex overflow-x-auto w-full h-full snap-x snap-mandatory hide-scrollbar">
+          <div 
+            className="flex overflow-x-auto w-full h-full snap-x snap-mandatory hide-scrollbar"
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+          >
             {product.images.map((img, idx) => (
               <img key={idx} src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover shrink-0 snap-center" />
             ))}
@@ -49,3 +54,4 @@ export const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
     </div>
   )
 }
+

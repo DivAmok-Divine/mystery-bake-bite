@@ -1,5 +1,5 @@
 import React from 'react'
-import { ShoppingBag, TrendingUp, Clock, CheckCircle2, XCircle, Users, UserCheck, UserX, Crown, Star } from 'lucide-react'
+import { ShoppingBag, Clock, CheckCircle2, XCircle, Users, UserCheck, UserX, Crown, Star } from 'lucide-react'
 import type { Order } from '../../../shared/lib/db'
 import { useCustomers } from '../../customers/api/useCustomers'
 
@@ -56,13 +56,22 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ orders }) => {
     <div className="flex flex-col gap-5 pt-2 pb-4">
 
       {/* Primary Revenue Card */}
-      <div className="p-5 rounded-md border border-brand-chocolate/10 bg-brand-chocolate/5 shadow-sm flex flex-col items-center gap-1.5">
-        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-brand-chocolate shadow-sm">
-          <TrendingUp size={22} />
+      <div className="p-6 rounded-md bg-brand-chocolate text-white shadow-xl flex flex-col items-center gap-2 relative overflow-hidden text-center">
+        {/* Background Watermark */}
+        <div className="absolute -right-10 -bottom-10 opacity-10 transform rotate-12">
+          <ShoppingBag size={160} />
         </div>
-        <span className="text-sm font-medium text-brand-chocolate/60 tracking-wider">Total Revenue</span>
-        <span className="text-4xl font-display text-brand-chocolate">GH₵ {totalRevenue.toLocaleString()}</span>
+        
+        <span className="text-xs font-bold tracking-widest opacity-60">Total Revenue</span>
+        
+        <h2 className="text-4xl font-display leading-none text-white">
+          GH₵ {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </h2>
+
+        <p className="text-[10px] opacity-40 font-medium">Gross earnings from all orders</p>
       </div>
+
+
 
       {/* 2-Column Layout */}
       <div className="grid grid-cols-2 gap-3">
