@@ -1,115 +1,98 @@
-<div align="center">
-  <img src="public/logo-clean.png" width="180" alt="Mystery Bake Bite Logo" />
+# 🥐 Mystery Bake Bite Monorepo
 
-# 🥐 Mystery Bake Bite
+[![Tech Stack](https://img.shields.io/badge/Stack-React%20%7C%20Vite%20%7C%20Dexie-blueviolet)](https://github.com/divinek/MysteryBakeBite)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-  **Premium Bakery & Pastry Management Dashboard**
-
-<br />
-
-<img src="https://img.shields.io/badge/Status-Proprietary-red?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Owner-DivAmok_Corp-blue?style=for-the-badge" />
-  <br />
-  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
-  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" />
-</div>
-
-<br />
-
-## 🔒 Proprietary Notice.
-
-This software is **Proprietary** and owned by **DivAmok Corp. ltd**. All rights are reserved. Unauthorized copying, modification, or redistribution of this software, via any medium, is strictly prohibited..
+A high-performance, offline-first monorepo powering the **Mystery Bake Bite** ecosystem. This repository manages both the administrative operations and the customer-facing experience using a unified shared logic layer.
 
 ---
 
-## 📖 Overview
+## 🏗 System Architecture
 
-**Mystery Bake Bite** is a bespoke, elegant, and highly responsive management dashboard tailored specifically for premium bakeries, pastry shops, and independent bakers. Engineered with a local-first philosophy, it allows business owners to manage their entire operation securely, offline, and blazing fast without relying on external cloud servers.
+The project is structured as a **Turborepo-ready npm monorepo**, ensuring code reuse and type safety across all platforms.
 
-Designed with a stunning "glassmorphism" aesthetic, warm chocolate branding, and buttery smooth micro-animations, the app ensures that managing your business is as delightful as the treats you bake.
+```mermaid
+graph TD
+    subgraph "Core Logic"
+        B[Backend Workspace]
+    end
+    subgraph "Frontend Apps"
+        MS[Management System]
+        WA[Website App]
+    end
+    B -- Shared Types & DB --> MS
+    B -- Shared Hooks --> WA
+    MS -- IndexedDB --> WA
+```
 
----
+### 📂 Workspaces
 
-## 🌟 Why Mystery Bake Bite?
-
-Most bakery software is built with sterile, generic interfaces that don't match the artisanal nature of baking. **Mystery Bake Bite** was created to bridge that gap—combining powerful, data-driven management tools with a UI that feels as warm and handcrafted as a fresh croissant.
-
-- **Local-First Security**: Your secret recipes and customer data never leave your device.
-- **Offline Reliability**: Manage your shop even when the internet goes down.
-- **Performance**: Instant load times and zero-latency interactions.
-
----
-
-## ✨ Core Features
-
-### 📦 Order & Sales Management
-
-Track every single order from placement to delivery. Features an intuitive order creation flow, auto-calculating totals, and an interactive reporting dashboard with dynamic date-range filtering to analyze sales performance.
-
-### 🧁 Product Catalog (Bites)
-
-Manage your menu items with ease. Upload photos per product, set dynamic pricing, categorize items (e.g., Pastries, Breads, Cakes), and write mouth-watering descriptions.
-
-### 👥 Customer Directory (CRM)
-
-Build lasting relationships. Keep a secure directory of all your customers, complete with contact details, order history, and custom notes to provide a personalized, VIP bakery experience.
-
-### 📖 Secret Recipe Book
-
-The heart of the bakery. Securely store your proprietary recipes, complete with detailed ingredient lists, step-by-step methods, and creation timestamps to protect your intellectual property.
-
-### 🔧 Equipment Fleet
-
-Keep the kitchen running flawlessly. Track your industrial ovens, mixers, and display cases. Monitor purchase dates, log maintenance records, and instantly see the operational status of every machine.
+| Path | Name | Purpose |
+| :--- | :--- | :--- |
+| [`/backend`](./backend) | **Core Source of Truth** | Shared Dexie.js schemas, React hooks, and business logic. |
+| [`/managment-system-frontend`](./managment-system-frontend) | **Admin Dashboard** | Order management, inventory tracking, and recipe vault. |
+| [`/website-app-frontend`](./website-app-frontend) | **Customer Experience** | Public-facing menu and customer interaction. |
 
 ---
 
-## 🛠 Tech Stack & Architecture
+## 🚀 Professional Setup
 
-- **Frontend Framework**: [React](https://react.dev/) powered by [Vite](https://vitejs.dev/).
-- **Language**: Strictly typed [TypeScript](https://www.typescriptlang.org/).
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with a custom design token system.
-- **Database**: [Dexie.js](https://dexie.org/) (IndexedDB) for a local-first experience.
+### 1. Prerequisites
+- **Node.js**: v18.x or higher
+- **npm**: v7.x or higher (for Workspace support)
 
----
+### 2. Installation
+Install dependencies for **all** workspaces from the root directory:
+```bash
+npm install
+```
 
-## 🚀 Getting Started
+### 3. Development Workflow
+We use a unified entry point to manage development servers:
 
-### Prerequisites
-
-Make sure you have [Node.js](https://nodejs.org/) (v18+) installed.
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/DivAmok-Divine/mystery-bake-bite.git
-   cd mystery-bake-bite
-   ```
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-3. **Start the development server**
-
-   ```bash
-   npm run dev
-   ```
-4. **Open the App**
-   Navigate to `http://localhost:5173` in your browser.
+- **Start Management System**: `npm run dev:admin` (or `./start.sh` option 1)
+- **Start Website App**: `npm run dev:web` (or `./start.sh` option 2)
+- **Start All**: `./start.sh` (option 3)
 
 ---
 
-## 📄 License
+## 🔗 Shared Logic Layer (`@backend`)
 
-This project is licensed under the **Proprietary Software License**. See the [LICENSE](LICENSE) file for details.
+All frontends consume shared logic via TypeScript path aliases. This ensures that any change to the database schema or business rules in `/backend` is automatically reflected across the entire ecosystem.
+
+**Example Usage:**
+```tsx
+import { useOrders } from '@backend/lib/hooks';
+import { db } from '@backend/lib/db';
+```
 
 ---
 
-## 🎨 Design Philosophy
+## 🚢 Deployment (Vercel)
 
-The UI was meticulously crafted to avoid the "sterile SaaS" look. By utilizing a cohesive color palette inspired by baking ingredients (deep chocolates, warm creams, and toasted doughs), layered translucency (glass effects), and carefully choreographed layout transitions, the software feels warm, tactile, and incredibly professional.
+This monorepo is optimized for **Vercel** deployments. 
+
+1. **Management System**: 
+   - Root Directory: `managment-system-frontend`
+   - Framework Preset: `Vite`
+2. **Website App**:
+   - Root Directory: `website-app-frontend`
+   - Framework Preset: `Vite`
+
+> [!IMPORTANT]
+> Ensure the "Include source files outside of the Root Directory" setting is enabled in Vercel to allow the apps to access the `/backend` folder.
+
+---
+
+## 🛠 Useful Utilities
+
+- **`./push_to_github.sh`**: A premium CLI utility to synchronize all workspace changes with GitHub in one command.
+- **`./start.sh`**: An interactive CLI to manage your local development environment.
+
+---
+
+## 📜 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+*Created with ❤️ for Mystery Bake Bite*

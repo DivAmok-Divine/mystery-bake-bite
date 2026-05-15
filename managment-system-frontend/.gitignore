@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Editor folders
+# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,13 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Build outputs
-managment-system-frontend/dist
-website-app-frontend/dist
-backend/dist
-
-# Env files
-.env
-.env.local
-.env.*.local
+.vercel
+.env*.local
