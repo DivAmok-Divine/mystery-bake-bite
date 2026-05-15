@@ -42,7 +42,7 @@ if command -v gh &> /dev/null; then
   
   if [ -z "$pr_url" ]; then
     echo -e "${CHOCOLATE}No PR found. Creating one for you...${NC}"
-    gh pr create --title "$description" --body "Refactored monorepo updates and synchronization." --base main --head "$current_branch"
+    gh pr create --title "$description" --body "Refactored monorepo updates and synchronization." --base mystery-bake-bite-production --head "$current_branch"
   else
     echo -e "${GOLD}Existing PR found: $pr_url${NC}"
   fi
