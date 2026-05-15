@@ -3,12 +3,12 @@
   "private": true,
   "workspaces": [
     "backend",
-    "managment-system-frontend",
+    "management-system-frontend",
     "website-app-frontend"
   ],
   "scripts": {
-    "build": "npm run build -w managment-system-frontend",
-    "dev:admin": "npm run dev -w managment-system-frontend",
+    "build": "npm run build -w management-system-frontend -- --debug",
+    "dev:admin": "npm run dev -w management-system-frontend",
     "dev:web": "npm run dev -w website-app-frontend"
   }
 }
