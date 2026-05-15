@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { 
   ShoppingBag, Eye, 
   Pencil, Plus, Search, BarChart3,
-  AlertTriangle, CheckCircle2, XCircle 
+  AlertTriangle, CheckCircle2, XCircle, Calendar as CalendarIcon
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
@@ -18,6 +18,9 @@ import { ConfirmModal } from '../../../shared/ui/molecules/ConfirmModal'
 import { OrderSummary } from './OrderSummary.tsx'
 import { StatusBadge } from '../../../shared/ui/atoms/StatusBadge'
 
+import { DateRangePicker, type DateRange } from '../../../shared/ui/molecules/DateRangePicker'
+import { isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+
 export const OrderList: React.FC = () => {
   const { isAdmin } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
@@ -27,6 +30,9 @@ export const OrderList: React.FC = () => {
   const [isEditingOrder, setIsEditingOrder] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
+
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
   const [orderToComplete, setOrderToComplete] = useState<Order | null>(null)
   const { orders, isLoading, updateOrder } = useOrders()
@@ -54,10 +60,22 @@ export const OrderList: React.FC = () => {
   }
 
   const getStatusCount = (status: string) => {
-    const baseItems = orders.filter(o => 
-      o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.items.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const baseItems = orders.filter(o => {
+      const matchesSearch = o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          o.items.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      let matchesDate = true
+      if (dateRange.start && dateRange.end) {
+        matchesDate = isWithinInterval(new Date(o.createdAt), { 
+          start: startOfDay(dateRange.start), 
+          end: endOfDay(dateRange.end) 
+        })
+      } else if (dateRange.start) {
+        matchesDate = new Date(o.createdAt) >= startOfDay(dateRange.start)
+      }
+      
+      return matchesSearch && matchesDate
+    })
     if (status === 'All') return baseItems.length
     return baseItems.filter(o => o.status === status).length
   }
@@ -68,8 +86,20 @@ export const OrderList: React.FC = () => {
     const matchesSearch = order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.items.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(order.status)
-    return matchesSearch && matchesStatus
+    
+    let matchesDate = true
+    if (dateRange.start && dateRange.end) {
+      matchesDate = isWithinInterval(new Date(order.createdAt), { 
+        start: startOfDay(dateRange.start), 
+        end: endOfDay(dateRange.end) 
+      })
+    } else if (dateRange.start) {
+      matchesDate = new Date(order.createdAt) >= startOfDay(dateRange.start)
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate
   })
+
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -81,9 +111,21 @@ export const OrderList: React.FC = () => {
     setIsEditingOrder(true)
   }
 
+  const navigateItem = (direction: 'next' | 'prev', list = filteredOrders) => {
+    if (!selectedOrder || list.length <= 1) return
+    const currentIndex = list.findIndex(o => o.id === selectedOrder.id)
+    if (currentIndex === -1) return
+    
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
+    if (newIndex >= list.length) newIndex = 0
+    if (newIndex < 0) newIndex = list.length - 1
+    
+    setSelectedOrder(list[newIndex])
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-6 px-6 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Orders</h1>
           <div className="flex items-center gap-2">
@@ -126,16 +168,48 @@ export const OrderList: React.FC = () => {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <CategoryFilter 
-                  show={orders.length > 0}
-                  options={displayStatuses}
-                  activeOptions={activeStatuses}
-                  onToggle={toggleStatus}
-                  getCount={getStatusCount}
-                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <CategoryFilter 
+                      show={orders.length > 0}
+                      options={displayStatuses}
+                      activeOptions={activeStatuses}
+                      onToggle={toggleStatus}
+                      getCount={getStatusCount}
+                    />
+                  </div>
+                  <div className="h-10 py-1.5 flex items-center">
+                    <button
+                      onClick={() => setShowDatePicker(true)}
+                      className={`px-3 h-full rounded-md flex items-center justify-center transition-all flex-shrink-0 ${
+                        dateRange.start 
+                          ? 'bg-brand-chocolate text-white shadow-md' 
+                          : 'bg-brand-chocolate/5 text-brand-chocolate border border-brand-chocolate/10'
+                      }`}
+                      title="Filter by Date"
+                    >
+                      <CalendarIcon size={14} />
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {dateRange.start && (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-brand-chocolate/5 rounded-md border border-brand-chocolate/10">
+              <span className="text-[10px] font-bold text-brand-chocolate/60 tracking-wider">
+                {format(dateRange.start, 'MMM d')} — {dateRange.end ? format(dateRange.end, 'MMM d') : '...'}
+              </span>
+              <button 
+                onClick={() => setDateRange({ start: null, end: null })}
+                className="text-[10px] font-bold text-red-500 underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
         </div>
       </header>
 
@@ -205,11 +279,18 @@ export const OrderList: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  {isAdmin && <span className="font-bold text-lg text-brand-chocolate">GH₵ {order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                <div className="flex flex-col items-end">
+                  {isAdmin && (
+                    <>
+                      <span className="text-xs font-bold text-brand-chocolate/40 leading-none">GH₵</span>
+                      <span className="text-xl font-bold text-brand-chocolate leading-tight mt-0.5">
+                        {order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </>
+                  )}
                   <StatusBadge 
                     status={order.status} 
-                    className="text-[10px] tracking-wider px-2 py-0.5 mt-1" 
+                    className="text-[10px] tracking-wider px-2 py-0.5 mt-2" 
                   />
                 </div>
               </div>
@@ -254,6 +335,7 @@ export const OrderList: React.FC = () => {
         isOpen={isAddingOrder} 
         onClose={() => setIsAddingOrder(false)} 
         title="New Order"
+        subtitle="Create a new order for your bakery"
       >
         <OrderForm onSuccess={() => setIsAddingOrder(false)} />
       </BottomSheet>
@@ -265,7 +347,11 @@ export const OrderList: React.FC = () => {
           setIsViewingOrder(false)
           setSelectedOrder(null)
         }} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedOrder?.id}
         title="Order Details"
+        subtitle="View full order information"
       >
         {selectedOrder && (
           <OrderDetails 
@@ -287,7 +373,11 @@ export const OrderList: React.FC = () => {
           setIsEditingOrder(false)
           setSelectedOrder(null)
         }} 
+        onSwipeLeft={() => navigateItem('next')}
+        onSwipeRight={() => navigateItem('prev')}
+        animationKey={selectedOrder?.id}
         title="Edit Order"
+        subtitle="Modify order details"
       >
         {selectedOrder && (
           <OrderForm 
@@ -356,6 +446,39 @@ export const OrderList: React.FC = () => {
       >
         <OrderSummary orders={orders} />
       </BottomSheet>
+
+      <AnimatePresence>
+        {showDatePicker && (
+          <div className="fixed inset-0 z-[120] flex items-end justify-center p-4 pb-10">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-brand-chocolate/40 backdrop-blur-sm" 
+              onClick={() => setShowDatePicker(false)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative z-10 w-full max-w-sm"
+            >
+              <DateRangePicker 
+                value={dateRange}
+                onChange={(range) => setDateRange(range)}
+                onClose={() => setShowDatePicker(false)}
+                confirmLabel="Ok"
+                onConfirm={() => setShowDatePicker(false)}
+              />
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
+
+
   )
 }
+

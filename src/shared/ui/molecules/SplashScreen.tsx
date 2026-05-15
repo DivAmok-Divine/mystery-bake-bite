@@ -72,7 +72,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
             <div className="mt-8 space-y-1">
               <h2 className="text-xl font-display text-brand-chocolate">Welcome back, Prof. Ella</h2>
-              <p className="text-xs font-bold text-brand-chocolate/40 tracking-widest italic">CEO & Master Baker</p>
+              <p className="text-xs font-bold text-brand-chocolate/40 tracking-widest">CEO & Master Baker</p>
             </div>
           </motion.div>
 

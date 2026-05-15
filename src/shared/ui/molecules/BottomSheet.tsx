@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { XCloseBtn } from '../atoms/XCloseBtn'
 import { ArrowLeft } from 'lucide-react'
 
@@ -9,7 +9,10 @@ interface BottomSheetProps {
   title: string
   subtitle?: string
   onBack?: () => void
+  onSwipeLeft?: () => void
+  onSwipeRight?: () => void
   children: React.ReactNode
+  animationKey?: string | number
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({ 
@@ -18,8 +21,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   title, 
   subtitle, 
   onBack,
-  children 
+  onSwipeLeft,
+  onSwipeRight,
+  children,
+  animationKey
 }) => {
+  const dragControls = useDragControls()
+
   // Lock body scroll when sheet is open
   React.useEffect(() => {
     if (isOpen) {
@@ -52,12 +60,32 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     }
   }, [isOpen, onClose])
 
-  // Manual close handler to ensure history is synced
+  // Manual close handler
   const handleManualClose = () => {
-    if (window.history.state?.sheetOpen) {
-      window.history.back()
-    }
     onClose()
+  }
+
+  // Native swipe detection logic
+  const [slideDirection, setSlideDirection] = React.useState(1)
+  const touchStartX = React.useRef(0)
+  const touchEndX = React.useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX
+    const swipeDistance = touchStartX.current - touchEndX.current
+    const swipeThreshold = 50 // Minimum distance for a swipe
+
+    if (swipeDistance > swipeThreshold) {
+      setSlideDirection(1)
+      if (onSwipeLeft) onSwipeLeft() // Swiped left
+    } else if (swipeDistance < -swipeThreshold) {
+      setSlideDirection(-1)
+      if (onSwipeRight) onSwipeRight() // Swiped right
+    }
   }
 
   return (
@@ -70,21 +98,50 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={handleManualClose}
-            className="fixed inset-0 bg-black/60 z-[60]"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleManualClose()
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/60 z-[100]"
           />
           
           {/* Sheet */}
           <motion.div
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 1000 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                handleManualClose()
+              }
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-brand-surface dark:bg-brand-espresso rounded-t-[20px] z-[70] shadow-2xl will-change-transform"
-            style={{ maxHeight: '90dvh', transform: 'translateZ(0)' }}
+            transition={{ 
+              duration: 0.2,
+              ease: "easeOut"
+            }}
+            className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-brand-surface dark:bg-brand-espresso rounded-t-[20px] z-[110] shadow-2xl will-change-transform"
+            style={{ maxHeight: '92dvh' }}
           >
-            {/* Handle bar */}
-            <div className="w-12 h-1 bg-brand-chocolate/10 rounded-full mx-auto mt-2 mb-1" />
+
+
+
+            {/* Handle bar area - made larger for easier touch */}
+            <div 
+              className="pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <div className="w-12 h-1.5 bg-brand-chocolate/10 rounded-full mx-auto" />
+            </div>
             
             <div className="px-6 py-3 flex items-start justify-between border-b border-brand-chocolate/5">
               <div className="flex items-center gap-3">
@@ -104,8 +161,23 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               <XCloseBtn onClick={handleManualClose} size={18} />
             </div>
             
-            <div className="px-6 pt-4 pb-0 overflow-y-auto overscroll-contain touch-auto" style={{ maxHeight: 'calc(90dvh - 80px)' }}>
-              {children}
+            <div 
+              className="px-6 pt-4 pb-0 overflow-y-auto overscroll-contain touch-auto overflow-x-hidden" 
+              style={{ maxHeight: 'calc(90dvh - 80px)' }}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={animationKey || 'default'}
+                  custom={slideDirection}
+                  initial={{ x: 15 * slideDirection, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1, transition: { duration: 0.15, ease: "easeOut" } }}
+                  exit={{ x: -15 * slideDirection, opacity: 0, transition: { duration: 0.1, ease: "easeIn" } }}
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </motion.div>
         </>

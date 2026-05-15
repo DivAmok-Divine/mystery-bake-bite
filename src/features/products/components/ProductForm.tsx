@@ -1,9 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useProducts } from '../api/useProducts'
 import { useCategories } from '../api/useCategories'
 import { Package, Tag, Wallet, FileText, Minus, Plus, PlusCircle, X, ChevronDown, Check, ImagePlus, Pencil, Trash2 } from 'lucide-react'
 import { ConfirmModal } from '../../../shared/ui/molecules/ConfirmModal'
+import { useClickOutside } from '../../../shared/lib/hooks'
 import type { Product } from '../../../shared/lib/db'
+
 
 interface ProductFormProps {
   onSuccess: () => void
@@ -20,7 +22,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null)
   const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useClickOutside(() => setIsDropdownOpen(false))
+
   const { updateCategory, deleteCategory } = useCategories()
   
   const [formData, setFormData] = useState({
@@ -70,13 +73,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
 
   // Close dropdown on click away
   useEffect(() => {
-    const handleClickAway = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickAway)
-    return () => document.removeEventListener('mousedown', handleClickAway)
+
   }, [])
 
   const validate = () => {
