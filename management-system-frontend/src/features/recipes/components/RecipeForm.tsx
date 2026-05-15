@@ -1,12 +1,19 @@
 import React, { useState } from 'react'
 import { useRecipes } from '../api/useRecipes.ts'
-import { Utensils, BookOpen, Clock, AlertCircle, Plus, X, Info } from 'lucide-react'
+import { Reorder } from 'framer-motion'
+import { Utensils, BookOpen, Clock, AlertCircle, Plus, X, Info, GripVertical } from 'lucide-react'
 import type { Recipe } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { generateId } from '@shared/utils/front-end-calculations/commonUtils'
 
 interface RecipeFormProps {
   recipe?: Recipe
   onSuccess: () => void
+}
+
+interface ListItem {
+  id: string
+  value: string
 }
 
 export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => {
@@ -14,12 +21,16 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
   
-  // Initialize lists from existing recipe or defaults
-  const [ingredientsList, setIngredientsList] = useState<string[]>(
-    recipe ? recipe.ingredients.split('\n').map(i => i.replace('• ', '')) : ['']
+  // Initialize lists with stable IDs for framer-motion Reorder
+  const [ingredientsList, setIngredientsList] = useState<ListItem[]>(
+    recipe 
+      ? recipe.ingredients.split('\n').map(i => ({ id: generateId(6), value: i.replace('• ', '') })) 
+      : [{ id: generateId(6), value: '' }]
   )
-  const [methodList, setMethodList] = useState<string[]>(
-    recipe ? recipe.method.split('\n').map(i => i.replace('• ', '')) : ['']
+  const [methodList, setMethodList] = useState<ListItem[]>(
+    recipe 
+      ? recipe.method.split('\n').map(m => ({ id: generateId(6), value: m.replace('• ', '') })) 
+      : [{ id: generateId(6), value: '' }]
   )
   
   const [formData, setFormData] = useState({
@@ -36,40 +47,68 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
     })
   }, [recipe])
 
+  const ingredientsContainerRef = React.useRef<HTMLDivElement>(null)
+  const methodContainerRef = React.useRef<HTMLDivElement>(null)
+
+  const focusLastItem = (containerRef: React.RefObject<HTMLDivElement | null>) => {
+    setTimeout(() => {
+      const textareas = containerRef.current?.querySelectorAll('textarea')
+      if (textareas && textareas.length > 0) {
+        const lastTextarea = textareas[textareas.length - 1] as HTMLTextAreaElement
+        lastTextarea.focus()
+        // Move cursor to end
+        const length = lastTextarea.value.length
+        lastTextarea.setSelectionRange(length, length)
+      }
+    }, 0)
+  }
+
   const addIngredient = () => {
-    setIngredientsList([...ingredientsList, ''])
+    // Don't add if last item is empty
+    if (ingredientsList.length > 0 && !ingredientsList[ingredientsList.length - 1].value.trim()) {
+      focusLastItem(ingredientsContainerRef)
+      return
+    }
+    setIngredientsList([...ingredientsList, { id: generateId(6), value: '' }])
+    focusLastItem(ingredientsContainerRef)
   }
 
   const removeIngredient = (index: number) => {
     if (ingredientsList.length > 1) {
       setIngredientsList(ingredientsList.filter((_, i) => i !== index))
     } else {
-      setIngredientsList([''])
+      setIngredientsList([{ id: generateId(6), value: '' }])
     }
   }
 
   const updateIngredient = (index: number, value: string) => {
     const newList = [...ingredientsList]
-    newList[index] = value
+    newList[index] = { ...newList[index], value }
     setIngredientsList(newList)
     if (errors.ingredients) setErrors({ ...errors, ingredients: '' })
   }
 
   const addMethodStep = () => {
-    setMethodList([...methodList, ''])
+    // Don't add if last item is empty
+    if (methodList.length > 0 && !methodList[methodList.length - 1].value.trim()) {
+      focusLastItem(methodContainerRef)
+      return
+    }
+    setMethodList([...methodList, { id: generateId(6), value: '' }])
+    focusLastItem(methodContainerRef)
   }
 
   const removeMethodStep = (index: number) => {
     if (methodList.length > 1) {
       setMethodList(methodList.filter((_, i) => i !== index))
     } else {
-      setMethodList([''])
+      setMethodList([{ id: generateId(6), value: '' }])
     }
   }
 
   const updateMethodStep = (index: number, value: string) => {
     const newList = [...methodList]
-    newList[index] = value
+    newList[index] = { ...newList[index], value }
     setMethodList(newList)
     if (errors.method) setErrors({ ...errors, method: '' })
   }
@@ -77,8 +116,8 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
   const validate = () => {
     const newErrors: Record<string, string> = {}
     if (!formData.title.trim()) newErrors.title = 'Recipe title is required'
-    if (ingredientsList.every(i => !i.trim())) newErrors.ingredients = 'At least one ingredient is required'
-    if (methodList.every(i => !i.trim())) newErrors.method = 'At least one method step is required'
+    if (ingredientsList.every(i => !i.value.trim())) newErrors.ingredients = 'At least one ingredient is required'
+    if (methodList.every(i => !i.value.trim())) newErrors.method = 'At least one method step is required'
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -87,8 +126,8 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
   const handleSave = () => {
     const recipeData = {
       title: formData.title,
-      ingredients: ingredientsList.filter(i => i.trim()).map(i => `• ${i}`).join('\n'),
-      method: methodList.filter(i => i.trim()).map(i => `• ${i}`).join('\n'),
+      ingredients: ingredientsList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
+      method: methodList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
       notes: formData.notes.trim(),
       createdAt: recipe?.createdAt || new Date()
     }
@@ -136,27 +175,42 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
           <button 
             type="button" 
             onClick={addIngredient}
-            className="text-brand-chocolate hover:opacity-60 transition-opacity"
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={ingredientsList.length > 0 && !ingredientsList[ingredientsList.length - 1].value.trim()}
+            className="text-brand-chocolate hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
           >
             <Plus size={20} />
           </button>
         </label>
         
-        <div className={`w-full min-h-[160px] max-h-[200px] overflow-y-auto no-scrollbar py-2 bg-brand-cream/10 border ${errors.ingredients ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md flex flex-col`}>
+        <Reorder.Group 
+          as="div"
+          axis="y" 
+          values={ingredientsList} 
+          onReorder={setIngredientsList}
+          ref={ingredientsContainerRef}
+          className={`w-full min-h-[160px] max-h-[200px] overflow-y-auto no-scrollbar py-2 bg-brand-cream/10 border ${errors.ingredients ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md flex flex-col`}
+        >
           {ingredientsList.map((ingredient, index) => (
-            <div key={index} className="flex items-center gap-2 group px-4">
-              <span className="text-brand-chocolate font-bold text-base">•</span>
+            <Reorder.Item 
+              value={ingredient} 
+              key={ingredient.id} 
+              className="flex items-center gap-2 group px-4 bg-transparent touch-none"
+            >
+              <div className="text-brand-chocolate/20 cursor-grab active:cursor-grabbing hover:text-brand-chocolate transition-colors py-1">
+                <GripVertical size={16} />
+              </div>
               <textarea
                 rows={1}
                 placeholder="Ingredient..."
                 className="flex-1 py-1.5 bg-transparent border-none focus:outline-none text-sm resize-none overflow-hidden"
-                value={ingredient}
+                value={ingredient.value}
                 enterKeyHint="next"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     addIngredient()
-                  } else if (e.key === 'Backspace' && !ingredient && ingredientsList.length > 1) {
+                  } else if (e.key === 'Backspace' && !ingredient.value && ingredientsList.length > 1) {
                     e.preventDefault()
                     removeIngredient(index)
                   }
@@ -179,9 +233,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
               >
                 <X size={14} />
               </button>
-            </div>
+            </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
         {errors.ingredients && (
           <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-0.5">
             <AlertCircle size={10} /> {errors.ingredients}
@@ -195,27 +249,42 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
           <button 
             type="button" 
             onClick={addMethodStep}
-            className="text-brand-chocolate hover:opacity-60 transition-opacity"
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={methodList.length > 0 && !methodList[methodList.length - 1].value.trim()}
+            className="text-brand-chocolate hover:opacity-60 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
           >
             <Plus size={20} />
           </button>
         </label>
         
-        <div className={`w-full min-h-[160px] max-h-[200px] overflow-y-auto no-scrollbar py-2 bg-brand-cream/10 border ${errors.method ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md flex flex-col`}>
+        <Reorder.Group 
+          as="div"
+          axis="y" 
+          values={methodList} 
+          onReorder={setMethodList}
+          ref={methodContainerRef}
+          className={`w-full min-h-[160px] max-h-[200px] overflow-y-auto no-scrollbar py-2 bg-brand-cream/10 border ${errors.method ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md flex flex-col`}
+        >
           {methodList.map((step, index) => (
-            <div key={index} className="flex items-center gap-2 group px-4">
-              <span className="text-brand-chocolate font-bold text-base">•</span>
+            <Reorder.Item 
+              value={step} 
+              key={step.id} 
+              className="flex items-center gap-2 group px-4 bg-transparent touch-none"
+            >
+              <div className="text-brand-chocolate/20 cursor-grab active:cursor-grabbing hover:text-brand-chocolate transition-colors py-1">
+                <GripVertical size={16} />
+              </div>
               <textarea
                 rows={1}
                 placeholder="Method step..."
                 className="flex-1 py-1.5 bg-transparent border-none focus:outline-none text-sm resize-none overflow-hidden"
-                value={step}
+                value={step.value}
                 enterKeyHint="next"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     addMethodStep()
-                  } else if (e.key === 'Backspace' && !step && methodList.length > 1) {
+                  } else if (e.key === 'Backspace' && !step.value && methodList.length > 1) {
                     e.preventDefault()
                     removeMethodStep(index)
                   }
@@ -238,9 +307,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
               >
                 <X size={14} />
               </button>
-            </div>
+            </Reorder.Item>
           ))}
-        </div>
+        </Reorder.Group>
         {errors.method && (
           <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-0.5">
             <AlertCircle size={10} /> {errors.method}
@@ -271,8 +340,8 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
           disabled={!!recipe && 
             formData.title === recipe.title && 
             formData.notes === (recipe.notes || '') &&
-            ingredientsList.filter(i => i.trim()).join('\n') === recipe.ingredients.split('\n').map(i => i.replace('• ', '')).filter(i => i.trim()).join('\n') &&
-            methodList.filter(m => m.trim()).join('\n') === recipe.method.split('\n').map(m => m.replace('• ', '')).filter(m => m.trim()).join('\n')
+            ingredientsList.filter(i => i.value.trim()).join('\n') === recipe.ingredients.split('\n').map(i => i.replace('• ', '')).filter(i => i.trim()).join('\n') &&
+            methodList.filter(m => m.value.trim()).join('\n') === recipe.method.split('\n').map(m => m.replace('• ', '')).filter(m => m.trim()).join('\n')
           }
           className="btn-primary w-full bg-feature-recipes hover:bg-feature-recipes/90 disabled:opacity-60 disabled:cursor-not-allowed"
         >

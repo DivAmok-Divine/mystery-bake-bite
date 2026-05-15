@@ -1,6 +1,7 @@
 {
   "name": "mystery-bake-bite-monorepo",
   "private": true,
+  "license": "UNLICENSED",
   "workspaces": [
     "backend",
     "management-system-frontend",
