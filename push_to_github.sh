@@ -35,19 +35,6 @@ echo -e "${GOLD}Current branch is: $current_branch${NC}"
 echo -e "${CHOCOLATE}Step 4: Pushing to GitHub...${NC}"
 git push origin "$current_branch"
 
-# Step 5: Handle Pull Requests
-if command -v gh &> /dev/null; then
-  echo -e "\n${GOLD}Step 5: Checking for Pull Request...${NC}"
-  pr_url=$(gh pr list --head "$current_branch" --json url --template '{{range .}}{{.url}}{{end}}')
-  
-  if [ -z "$pr_url" ]; then
-    echo -e "${CHOCOLATE}No PR found. Creating one for you...${NC}"
-    gh pr create --title "$description" --body "Refactored monorepo updates and synchronization." --base main --head "$current_branch"
-  else
-    echo -e "${GOLD}Existing PR found: $pr_url${NC}"
-  fi
-fi
-
 echo -e "\n${GOLD}✨ Success! Your code is now live on GitHub.${NC}"
 echo -e "${CHOCOLATE}🚀 Vercel will automatically pick this up and deploy the respective workspaces.${NC}"
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
