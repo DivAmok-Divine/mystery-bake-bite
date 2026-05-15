@@ -232,6 +232,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     setShowConfirm(true)
   }
 
+  const topBuyers = useTopBuyers(orders, customers, 4)
+
   if (isAddingNewCustomer) {
     return (
       <div className="flex flex-col gap-4">
@@ -242,8 +244,6 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       </div>
     )
   }
-
-  const topBuyers = useTopBuyers(orders, customers, 4)
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
