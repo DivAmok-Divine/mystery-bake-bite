@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react'
 import {
   format, addMonths, subMonths, startOfMonth,
   endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, addDays, isWithinInterval
 } from 'date-fns'
 import { XCloseBtn } from '../atoms/XCloseBtn'
+import { MonthYearSelector, DAYS } from './MonthYearSelector'
 
 export interface DateRange {
   start: Date | null
@@ -20,8 +21,6 @@ interface DateRangePickerProps {
   onConfirm?: () => void
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-
 export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   value,
   onChange,
@@ -29,17 +28,15 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   confirmLabel,
   onConfirm
 }) => {
-
   const [currentMonth, setCurrentMonth] = useState(
     value.start ?? new Date()
   )
+  const [showSelector, setShowSelector] = useState(false)
 
   const handleDayClick = (day: Date) => {
-    // If no start yet, or both are set → start a new range
     if (!value.start || (value.start && value.end)) {
       onChange({ start: day, end: null })
     } else {
-      // Second click — set end (swap if needed)
       if (day < value.start) {
         onChange({ start: day, end: value.start })
       } else {
@@ -84,13 +81,15 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                 ? 'bg-brand-dough text-brand-chocolate font-bold z-10'
                 : isInRange
                   ? 'bg-brand-dough/20 text-brand-chocolate'
-                  : 'text-brand-chocolate/80'}
+                  : isTodayDate
+                    ? 'bg-brand-chocolate text-white font-bold'
+                    : 'text-brand-chocolate/80'}
               hover:bg-brand-chocolate/5
             `}
           >
             {format(day, 'd')}
-            {isTodayDate && !isSelected && (
-              <div className="absolute inset-0 border border-brand-chocolate/20 rounded-md m-0.5 pointer-events-none" />
+            {isTodayDate && (
+              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-chocolate" />
             )}
           </button>
         )
@@ -108,18 +107,19 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return <div className="flex flex-col gap-1">{rows}</div>
   }
 
+
   return (
-    <div className="card bg-brand-surface border border-brand-chocolate/10 p-4 animate-in zoom-in-95">
+    <div className="card bg-brand-surface border border-brand-chocolate/10 p-4 animate-in zoom-in-95 relative overflow-visible">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-bold text-brand-chocolate/40 flex items-center gap-2">
-          <CalendarIcon size={12} /> Range Picker
+          <CalendarIcon size={12} /> Date Range Picker
         </h4>
         <XCloseBtn onClick={onClose} size={14} />
       </div>
 
-      {/* Calendar */}
-      <div className="bg-brand-cream/10 rounded-md p-3">
+      {/* Calendar Container */}
+      <div className="bg-brand-cream/10 rounded-md p-3 relative">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -129,9 +129,20 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           >
             <ChevronLeft size={20} className="text-brand-chocolate" />
           </button>
-          <span className="text-sm font-bold text-brand-chocolate">
-            {format(currentMonth, 'MMMM yyyy')}
-          </span>
+          
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSelector(!showSelector)}
+              className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-brand-chocolate/5 rounded-md transition-colors group"
+            >
+              <span className="text-sm font-bold text-brand-chocolate">
+                {format(currentMonth, 'MMMM yyyy')}
+              </span>
+              <ChevronDown size={14} className={`text-brand-chocolate/40 group-hover:text-brand-chocolate transition-transform ${showSelector ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
@@ -179,9 +190,15 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             </button>
           )}
         </div>
-
-
       </div>
+      {/* Quick Month/Year Selector Popup (Centered to the whole card) */}
+      <MonthYearSelector
+        isOpen={showSelector}
+        onClose={() => setShowSelector(false)}
+        currentMonth={currentMonth}
+        onChangeMonth={setCurrentMonth}
+        topOffsetClassName="top-[120px]"
+      />
     </div>
   )
 }

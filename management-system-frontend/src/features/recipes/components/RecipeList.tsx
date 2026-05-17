@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Plus, BookOpen, Pencil, Trash2, Search } from 'lucide-react'
 import { useRecipes } from '../api/useRecipes'
 import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
@@ -7,6 +7,7 @@ import { RecipeDetails } from './RecipeDetails'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import type { Recipe } from '@backend/lib/db'
 
 export const RecipeList: React.FC = () => {
@@ -17,10 +18,12 @@ export const RecipeList: React.FC = () => {
   const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
   const { recipes, isLoading, deleteRecipe } = useRecipes()
 
-  const filteredRecipes = recipes.filter(recipe => 
-    recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    recipe.ingredients.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter(recipe => 
+      recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recipe.ingredients.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [recipes, searchQuery])
 
 
 
@@ -59,9 +62,7 @@ export const RecipeList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4">
-          {[1, 2].map(i => <div key={i} className="h-40 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={2} className="h-40" />
       ) : recipes.length === 0 ? (
         <EmptyState
           icon={BookOpen}

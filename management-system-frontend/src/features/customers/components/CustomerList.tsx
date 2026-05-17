@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Plus, User, Phone, Mail, Pencil, Trash2, Search, BarChart3, CheckCircle2, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCustomers } from '../api/useCustomers'
@@ -10,6 +10,8 @@ import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilte
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { CustomerSummary } from './CustomerSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { toggleFilterValue, formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
 import type { Customer } from '@backend/lib/db'
 
 
@@ -28,43 +30,28 @@ export const CustomerList: React.FC = () => {
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
 
   const toggleStatus = (status: string) => {
-    if (status === 'All') {
-      setActiveStatuses(['All'])
-      return
-    }
-
-    let newStatuses = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    
-    if (newStatuses.includes(status)) {
-      newStatuses = newStatuses.filter(s => s !== status)
-    } else {
-      newStatuses.push(status)
-    }
-
-    if (newStatuses.length === 0) {
-      newStatuses = ['All']
-    }
-    
-    setActiveStatuses(newStatuses)
+    setActiveStatuses(toggleFilterValue(activeStatuses, status))
   }
 
-  const getStatusCount = (status: string) => {
-    const baseItems = customers.filter(c => 
+  const baseFilteredCustomers = useMemo(() => {
+    return customers.filter(c => 
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.phone.includes(searchQuery)
     )
-    if (status === 'All') return baseItems.length
-    return baseItems.filter(c => c.status === status).length
+  }, [customers, searchQuery])
+
+  const getStatusCount = (status: string) => {
+    if (status === 'All') return baseFilteredCustomers.length
+    return baseFilteredCustomers.filter(c => c.status === status).length
   }
 
   const displayStatuses = ['All', 'Active', 'Inactive']
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         customer.phone.includes(searchQuery)
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(customer.status)
-    return matchesSearch && matchesStatus
-  })
+  const filteredCustomers = useMemo(() => {
+    return baseFilteredCustomers.filter(customer => {
+      return activeStatuses.includes('All') || activeStatuses.includes(customer.status)
+    })
+  }, [baseFilteredCustomers, activeStatuses])
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer)
@@ -148,9 +135,7 @@ export const CustomerList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={3} className="h-24" />
       ) : customers.length === 0 ? (
         <EmptyState
           icon={User}
@@ -177,9 +162,13 @@ export const CustomerList: React.FC = () => {
                   <XCircle size={36} className="text-rose-600" />
                 )}
               </div>
-              <div className="w-12 h-12 rounded-md bg-brand-dough/20 flex items-center justify-center text-brand-chocolate shrink-0">
+              <button
+                type="button"
+                onClick={() => handleView(customer)}
+                className="w-12 h-12 rounded-md bg-brand-dough/20 flex items-center justify-center text-brand-chocolate shrink-0 hover:bg-brand-dough/30 active:scale-95 transition-all cursor-pointer"
+              >
                 <User size={24} />
-              </div>
+              </button>
               <div className="flex-1 min-w-0 pr-2">
                 <button 
                   onClick={() => handleView(customer)}
@@ -187,10 +176,10 @@ export const CustomerList: React.FC = () => {
                 >
                   <h3 className="font-bold truncate group-hover/name:text-brand-chocolate transition-colors">{customer.name}</h3>
                 </button>
-                <div className="flex items-center gap-3 text-[10px] text-brand-chocolate/40 mt-1">
+                 <div className="flex items-center gap-3 text-[10px] text-brand-chocolate/40 mt-1">
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Phone size={10} className="shrink-0" />
-                    <span>{customer.phone}</span>
+                    <span>{formatPhone(customer.phone)}</span>
                   </div>
                   {customer.email && (
                     <div className="flex items-center gap-1.5 min-w-0">

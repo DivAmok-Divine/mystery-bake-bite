@@ -21,18 +21,58 @@ export const clamp = (num: number, min: number, max: number): number => {
  * Formats a phone number for display
  */
 export const formatPhone = (phone: string): string => {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `+233 ${digits}`
+  if (!phone) return ''
+  const trimmed = phone.trim()
+  
+  // Extract digits only
+  let digits = trimmed.replace(/\D/g, '')
+  
+  // Strip country code if present
+  if (digits.startsWith('233')) {
+    digits = digits.slice(3)
   }
+  
+  // Strip leading zero if present
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1)
+  }
+  
+  // Format as +233 XXX XXX XXX if we have 9 digits
+  if (digits.length === 9) {
+    const part1 = digits.slice(0, 3)
+    const part2 = digits.slice(3, 6)
+    const part3 = digits.slice(6, 9)
+    return `+233 ${part1} ${part2} ${part3}`
+  }
+  
   return phone
 }
 
 /**
- * Validates a Ghanaian phone number format
+ * Validates a Ghanaian phone number format (expects 10 digits starting with 0, or 9 digits without leading 0)
  */
 export const isValidGhanaPhone = (phone: string): boolean => {
-  const digits = phone.replace('+233 ', '').replace(/\D/g, '')
-  return digits.length === 10 && digits.startsWith('0')
+  const digits = phone.replace(/\D/g, '')
+  return (digits.length === 10 && digits.startsWith('0')) || (digits.length === 9 && !digits.startsWith('0'))
 }
 
+/**
+ * Toggles a value inside a multi-select filter array.
+ * If 'All' is toggled, it resets other filters.
+ * If all filters are removed, it defaults back to 'All'.
+ */
+export const toggleFilterValue = (activeValues: string[], valueToToggle: string): string[] => {
+  if (valueToToggle === 'All') {
+    return ['All']
+  }
+  let newValues = activeValues.includes('All') ? [] : [...activeValues]
+  if (newValues.includes(valueToToggle)) {
+    newValues = newValues.filter(v => v !== valueToToggle)
+  } else {
+    newValues.push(valueToToggle)
+  }
+  if (newValues.length === 0) {
+    return ['All']
+  }
+  return newValues
+}

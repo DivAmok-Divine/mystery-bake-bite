@@ -20,8 +20,6 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
     ...(isAdmin ? [{ id: 'reporting' as const, icon: BarChart3, label: 'Reports' }] : []),
   ] as const
 
-
-
   const touchStart = React.useRef<{ x: number, y: number } | null>(null)
   const minSwipeDistance = 50
 

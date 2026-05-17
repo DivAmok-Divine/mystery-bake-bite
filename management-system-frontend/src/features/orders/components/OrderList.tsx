@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { 
   ShoppingBag, Eye, 
   Pencil, Plus, Search, BarChart3,
@@ -19,6 +19,8 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { OrderSummary } from './OrderSummary.tsx'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
 
 import { DateRangePicker, type DateRange } from '@shared/ui/molecules/DateRangePicker'
 
@@ -51,28 +53,11 @@ export const OrderList: React.FC = () => {
   }, [dateRange.start])
 
   const toggleStatus = (status: string) => {
-    if (status === 'All') {
-      setActiveStatuses(['All'])
-      return
-    }
-
-    let newStatuses = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    
-    if (newStatuses.includes(status)) {
-      newStatuses = newStatuses.filter(s => s !== status)
-    } else {
-      newStatuses.push(status)
-    }
-
-    if (newStatuses.length === 0) {
-      newStatuses = ['All']
-    }
-    
-    setActiveStatuses(newStatuses)
+    setActiveStatuses(toggleFilterValue(activeStatuses, status))
   }
 
-  const getStatusCount = (status: string) => {
-    const baseItems = orders.filter(o => {
+  const baseFilteredOrders = useMemo(() => {
+    return orders.filter(o => {
       const matchesSearch = o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           o.items.toLowerCase().includes(searchQuery.toLowerCase())
       
@@ -89,40 +74,25 @@ export const OrderList: React.FC = () => {
           end: endOfDay(dateRange.end) 
         })
       } else if (dateRange.start) {
-        matchesDate = new Date(o.createdAt) >= startOfDay(dateRange.start)
+        matchesDate = isSameDay(new Date(o.createdAt), dateRange.start)
       }
       
       return matchesSearch && matchesDate
     })
-    if (status === 'All') return baseItems.length
-    return baseItems.filter(o => o.status === status).length
+  }, [orders, searchQuery, timeView, dateRange])
+
+  const getStatusCount = (status: string) => {
+    if (status === 'All') return baseFilteredOrders.length
+    return baseFilteredOrders.filter(o => o.status === status).length
   }
 
   const displayStatuses = ['All', 'Pending', 'Completed', 'Cancelled']
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.items.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(order.status)
-    
-    let matchesDate = true
-    if (timeView === 'Today') {
-      const today = new Date()
-      matchesDate = isWithinInterval(new Date(order.createdAt), { 
-        start: startOfDay(today), 
-        end: endOfDay(today) 
-      })
-    } else if (dateRange.start && dateRange.end) {
-      matchesDate = isWithinInterval(new Date(order.createdAt), { 
-        start: startOfDay(dateRange.start), 
-        end: endOfDay(dateRange.end) 
-      })
-    } else if (dateRange.start) {
-      matchesDate = isSameDay(new Date(order.createdAt), dateRange.start)
-    }
-    
-    return matchesSearch && matchesStatus && matchesDate
-  })
+  const filteredOrders = useMemo(() => {
+    return baseFilteredOrders.filter(order => {
+      return activeStatuses.includes('All') || activeStatuses.includes(order.status)
+    })
+  }, [baseFilteredOrders, activeStatuses])
 
 
   const handleViewDetails = (order: Order) => {
@@ -353,9 +323,7 @@ export const OrderList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-32 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={3} className="h-32" />
       ) : orders.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
