@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { Plus, BookOpen, Pencil, Trash2, Search } from 'lucide-react'
 import { useRecipes } from '../api/useRecipes'
 import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
@@ -12,18 +13,20 @@ import type { Recipe } from '@backend/lib/db'
 
 export const RecipeList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingRecipe, setIsAddingRecipe] = useState(false)
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null)
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null)
   const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
+  const [isFormDirty, setIsFormDirty] = useState(false)
   const { recipes, isLoading, deleteRecipe } = useRecipes()
 
   const filteredRecipes = useMemo(() => {
     return recipes.filter(recipe => 
-      recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recipe.ingredients.toLowerCase().includes(searchQuery.toLowerCase())
+      recipe.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      recipe.ingredients.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     )
-  }, [recipes, searchQuery])
+  }, [recipes, debouncedSearchQuery])
 
 
 
@@ -88,7 +91,11 @@ export const RecipeList: React.FC = () => {
 
               <div className="relative z-10 flex justify-between items-center gap-4">
                 {/* Left aligned Icon and Title */}
-                <div className="flex-1 flex items-center gap-4 py-1">
+                <div 
+                  onClick={() => setViewingRecipe(recipe)}
+                  className="flex-1 flex items-center gap-4 py-1 cursor-pointer active:scale-[0.98] hover:opacity-80 transition-all"
+                  title="View Full Recipe"
+                >
                   <div className="w-10 h-10 rounded-md bg-brand-dough/10 flex items-center justify-center text-brand-chocolate flex-shrink-0">
                     <BookOpen size={20} />
                   </div>
@@ -143,27 +150,45 @@ export const RecipeList: React.FC = () => {
       {/* Add Recipe BottomSheet */}
       <BottomSheet 
         isOpen={isAddingRecipe} 
-        onClose={() => setIsAddingRecipe(false)} 
+        onClose={() => {
+          setIsAddingRecipe(false)
+          setIsFormDirty(false)
+        }} 
         title="Add Secret Recipe"
         subtitle="Create a new formula for your bakery"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <RecipeForm onSuccess={() => setIsAddingRecipe(false)} />
+        <RecipeForm 
+          onSuccess={() => {
+            setIsAddingRecipe(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       {/* Edit Recipe BottomSheet */}
       <BottomSheet 
         isOpen={!!editingRecipe} 
-        onClose={() => setEditingRecipe(null)} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
+        onClose={() => {
+          setEditingRecipe(null)
+          setIsFormDirty(false)
+        }} 
         animationKey={editingRecipe?.id}
         title="Edit Secret Recipe"
         subtitle="Modify recipe ingredients and instructions"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         {editingRecipe && (
           <RecipeForm 
             recipe={editingRecipe} 
-            onSuccess={() => setEditingRecipe(null)} 
+            onSuccess={() => {
+              setEditingRecipe(null)
+              setIsFormDirty(false)
+            }} 
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>

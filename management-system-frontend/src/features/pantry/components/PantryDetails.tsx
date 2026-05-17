@@ -11,11 +11,45 @@ import { calculateStockProgress } from '@shared/utils/front-end-calculations/pan
 import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
 
 interface PantryDetailsProps {
-  item: PantryItem
+  item?: PantryItem
+  isLoading?: boolean
   onRestock?: () => void
 }
 
-export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, onRestock }) => {
+export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, onRestock }) => {
+  if (isLoading || !item) {
+    return (
+      <div className="flex flex-col gap-5 pb-8 animate-pulse">
+        {/* Hero Stock Banner Pulse */}
+        <div className="p-5 rounded-md flex items-center gap-4 bg-brand-cream/10 border border-brand-chocolate/5">
+          <div className="w-14 h-14 rounded-md bg-brand-chocolate/10 shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="h-6 w-40 bg-brand-chocolate/10 rounded" />
+            <div className="flex gap-2">
+              <div className="h-4 w-12 bg-brand-chocolate/10 rounded" />
+              <div className="h-4 w-16 bg-brand-chocolate/10 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stock Level Pulse */}
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between">
+            <div className="h-3 w-16 bg-brand-chocolate/10 rounded" />
+            <div className="h-3 w-20 bg-brand-chocolate/10 rounded" />
+          </div>
+          <div className="h-2.5 bg-brand-chocolate/10 rounded-full" />
+          <div className="h-3 w-36 bg-brand-chocolate/10 rounded" />
+        </div>
+
+        {/* Info Grid Pulse */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 bg-brand-cream/10 rounded-md h-24" />
+          <div className="p-4 bg-brand-cream/10 rounded-md h-24" />
+        </div>
+      </div>
+    )
+  }
 
   const stockPercent = calculateStockProgress(item.currentStock || 0, item.minStock || 1)
 

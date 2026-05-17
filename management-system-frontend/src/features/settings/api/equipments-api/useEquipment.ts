@@ -6,17 +6,24 @@ export const useEquipment = () => {
 
   const equipmentQuery = useQuery({
     queryKey: ['equipment'],
-    queryFn: () => db.equipment.toArray(),
+    queryFn: async () => {
+      const data = await db.equipment.toArray()
+      return data.sort((a, b) => {
+        const timeA = new Date((a as any).updatedAt || a.createdAt).getTime()
+        const timeB = new Date((b as any).updatedAt || b.createdAt).getTime()
+        return timeB - timeA
+      })
+    },
   })
 
   const addEquipmentMutation = useMutation({
-    mutationFn: (equipment: Equipment) => db.equipment.add(equipment),
+    mutationFn: (equipment: Equipment) => db.equipment.add({ ...equipment, updatedAt: new Date() } as any),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] })
   })
 
   const updateEquipmentMutation = useMutation({
     mutationFn: ({ id, changes }: { id: number, changes: Partial<Equipment> }) => 
-      db.equipment.update(id, changes),
+      db.equipment.update(id, { ...changes, updatedAt: new Date() } as any),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] })
   })
 

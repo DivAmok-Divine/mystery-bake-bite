@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { Plus, User, Phone, Mail, Pencil, Trash2, Search, BarChart3, CheckCircle2, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCustomers } from '../api/useCustomers'
@@ -17,6 +18,7 @@ import type { Customer } from '@backend/lib/db'
 
 export const CustomerList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isEditingCustomer, setIsEditingCustomer] = useState(false)
@@ -25,6 +27,7 @@ export const CustomerList: React.FC = () => {
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const { customers, isLoading, deleteCustomer } = useCustomers()
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
@@ -35,10 +38,10 @@ export const CustomerList: React.FC = () => {
 
   const baseFilteredCustomers = useMemo(() => {
     return customers.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
+      c.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      c.phone.includes(debouncedSearchQuery)
     )
-  }, [customers, searchQuery])
+  }, [customers, debouncedSearchQuery])
 
   const getStatusCount = (status: string) => {
     if (status === 'All') return baseFilteredCustomers.length
@@ -213,11 +216,22 @@ export const CustomerList: React.FC = () => {
       {/* Add New Customer */}
       <BottomSheet 
         isOpen={isAddingCustomer} 
-        onClose={() => setIsAddingCustomer(false)} 
+        onClose={() => {
+          setIsAddingCustomer(false)
+          setIsFormDirty(false)
+        }} 
         title="Add Customer"
         subtitle="Add a new customer to your database"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <CustomerForm onSuccess={() => setIsAddingCustomer(false)} />
+        <CustomerForm 
+          onSuccess={() => {
+            setIsAddingCustomer(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       <BottomSheet 
@@ -247,12 +261,13 @@ export const CustomerList: React.FC = () => {
         onClose={() => {
           setIsEditingCustomer(false)
           setSelectedCustomer(null)
+          setIsFormDirty(false)
         }} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedCustomer?.id}
         title="Edit Customer"
         subtitle="Modify customer contact details"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
 
         {selectedCustomer && (
@@ -260,8 +275,10 @@ export const CustomerList: React.FC = () => {
             onSuccess={() => {
               setIsEditingCustomer(false)
               setSelectedCustomer(null)
+              setIsFormDirty(false)
             }} 
             initialData={selectedCustomer}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>

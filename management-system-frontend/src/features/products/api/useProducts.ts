@@ -6,16 +6,24 @@ export const useProducts = () => {
 
   const productsQuery = useQuery({
     queryKey: ['products'],
-    queryFn: () => db.products.toArray(),
+    queryFn: async () => {
+      const data = await db.products.toArray()
+      return data.sort((a, b) => {
+        const timeA = new Date((a as any).updatedAt || a.createdAt).getTime()
+        const timeB = new Date((b as any).updatedAt || b.createdAt).getTime()
+        return timeB - timeA
+      })
+    },
   })
 
   const addProductMutation = useMutation({
-    mutationFn: (product: Product) => db.products.add(product),
+    mutationFn: (product: Product) => db.products.add({ ...product, updatedAt: new Date() } as any),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
   })
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, changes }: { id: number, changes: Partial<Product> }) => db.products.update(id, changes),
+    mutationFn: ({ id, changes }: { id: number, changes: Partial<Product> }) => 
+      db.products.update(id, { ...changes, updatedAt: new Date() } as any),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
   })
 

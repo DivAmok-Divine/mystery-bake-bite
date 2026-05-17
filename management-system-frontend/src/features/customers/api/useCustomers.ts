@@ -6,18 +6,26 @@ export const useCustomers = () => {
 
   const customersQuery = useQuery({
     queryKey: ['customers'],
-    queryFn: () => db.customers.toArray(),
+    queryFn: async () => {
+      const data = await db.customers.toArray()
+      return data.sort((a, b) => {
+        const timeA = new Date((a as any).updatedAt || a.createdAt).getTime()
+        const timeB = new Date((b as any).updatedAt || b.createdAt).getTime()
+        return timeB - timeA
+      })
+    },
   })
 
   const addCustomerMutation = useMutation({
-    mutationFn: (customer: Customer) => db.customers.add(customer),
+    mutationFn: (customer: Customer) => db.customers.add({ ...customer, updatedAt: new Date() } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     }
   })
 
   const updateCustomerMutation = useMutation({
-    mutationFn: ({ id, changes }: { id: number, changes: Partial<Customer> }) => db.customers.update(id, changes),
+    mutationFn: ({ id, changes }: { id: number, changes: Partial<Customer> }) => 
+      db.customers.update(id, { ...changes, updatedAt: new Date() } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     }

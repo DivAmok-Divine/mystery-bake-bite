@@ -125,7 +125,7 @@ export const useDeveloperTools = () => {
     items: [
       { 
         label: hasData ? 'Clear Mock Data' : 'Seed Mock Data', 
-        value: hasData ? 'Remove all records from database' : 'Fill with 50+ records per module', 
+        value: hasData ? 'Remove all records from database' : 'Fill with 50-200 records per module', 
         icon: isSeeding ? Loader2 : (hasData ? Trash2 : Database), 
         action: () => hasData ? setShowClearConfirm(true) : setShowSeedConfirm(true),
         actionLabel: isSeeding ? 'Working...' : (hasData ? 'Clear Data' : 'Load Seed Data'),
@@ -141,7 +141,7 @@ export const useDeveloperTools = () => {
         onClose={() => setShowSeedConfirm(false)}
         onConfirm={handleSeed}
         title="Seed Mock Data?"
-        message="This will replace ALL your current data with 50+ fresh records per module."
+        message="This will replace ALL your current data with 50-200 fresh records per module."
         confirmText="Yes, Seed Data"
         isDestructive={false}
       />

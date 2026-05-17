@@ -64,7 +64,7 @@ export const getDeveloperToolsSection = (onSeed: () => void) => ({
   items: [
     { 
       label: 'Seed Mock Data', 
-      value: 'Fill with 50+ records per module', 
+      value: 'Fill with 50-200 records per module', 
       icon: Database, 
       action: onSeed,
       actionLabel: 'Seed'

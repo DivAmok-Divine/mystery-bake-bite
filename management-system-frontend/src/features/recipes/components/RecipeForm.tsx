@@ -9,6 +9,7 @@ import { generateId } from '@shared/utils/front-end-calculations/commonUtils'
 interface RecipeFormProps {
   recipe?: Recipe
   onSuccess: () => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 interface ListItem {
@@ -16,7 +17,7 @@ interface ListItem {
   value: string
 }
 
-export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => {
+export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDirtyChange }) => {
   const { addRecipe, updateRecipe } = useRecipes()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -140,6 +141,44 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
     onSuccess()
   }
 
+  const hasChanges = React.useMemo(() => {
+    if (!recipe) return true
+
+    // 1. Check title
+    if (formData.title.trim() !== recipe.title.trim()) return true
+
+    // 2. Check notes null-safely
+    if ((formData.notes || '').trim() !== (recipe.notes || '').trim()) return true
+
+    // 3. Check ingredients (compare normalized trimmed strings)
+    const currentIngredients = ingredientsList.map(i => i.value.trim()).filter(Boolean).join('\n')
+    const initialIngredients = recipe.ingredients.split('\n').map(i => i.replace('• ', '').trim()).filter(Boolean).join('\n')
+    if (currentIngredients !== initialIngredients) return true
+
+    // 4. Check method steps
+    const currentMethod = methodList.map(m => m.value.trim()).filter(Boolean).join('\n')
+    const initialMethod = recipe.method.split('\n').map(m => m.replace('• ', '').trim()).filter(Boolean).join('\n')
+    if (currentMethod !== initialMethod) return true
+
+    return false
+  }, [recipe, formData.title, formData.notes, ingredientsList, methodList])
+
+  const isDirty = React.useMemo(() => {
+    if (recipe) {
+      return hasChanges
+    }
+    return (
+      formData.title.trim() !== '' ||
+      formData.notes.trim() !== '' ||
+      ingredientsList.some(i => i.value.trim() !== '') ||
+      methodList.some(m => m.value.trim() !== '')
+    )
+  }, [recipe, hasChanges, formData, ingredientsList, methodList])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
@@ -147,7 +186,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
           <BookOpen size={14} /> Recipe Title
@@ -334,15 +373,10 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
         />
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-2 pb-2 z-10 border-t border-brand-chocolate/5">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!recipe && 
-            formData.title === recipe.title && 
-            formData.notes === (recipe.notes || '') &&
-            ingredientsList.filter(i => i.value.trim()).join('\n') === recipe.ingredients.split('\n').map(i => i.replace('• ', '')).filter(i => i.trim()).join('\n') &&
-            methodList.filter(m => m.value.trim()).join('\n') === recipe.method.split('\n').map(m => m.replace('• ', '')).filter(m => m.trim()).join('\n')
-          }
+          disabled={!!recipe && !hasChanges}
           className="btn-primary w-full bg-feature-recipes hover:bg-feature-recipes/90 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {recipe ? 'Update Recipe' : 'Save Recipe'}
@@ -360,6 +394,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
         }
         confirmText={recipe ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )

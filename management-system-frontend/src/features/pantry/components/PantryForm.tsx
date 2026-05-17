@@ -18,10 +18,11 @@ interface PantryFormProps {
   onSuccess: () => void
   initialData?: PantryItem
   isRestock?: boolean
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 
-export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, isRestock }) => {
+export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, isRestock, onDirtyChange }) => {
   const { pantryItems, addPantryItem, updatePantryItem } = usePantry()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -54,15 +55,37 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
     parseFloat(formData.lastPrice) === i.lastPrice
   )
 
-  const hasChanges = initialData ? (
-    formData.name.trim() !== initialData.name.trim() ||
-    formData.category !== initialData.category ||
-    Number(formData.currentStock) !== Number(initialData.currentStock) ||
-    Number(formData.minStock) !== Number(initialData.minStock) ||
-    formData.unit !== initialData.unit ||
-    formatNumber(parseFloat(formData.lastPrice)) !== formatNumber(initialData.lastPrice || 0) ||
-    (formData.notes || '').trim() !== (initialData.notes || '').trim()
-  ) : true
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    return (
+      formData.name.trim() !== initialData.name.trim() ||
+      formData.category !== initialData.category ||
+      Number(formData.currentStock) !== Number(initialData.currentStock) ||
+      Number(formData.minStock) !== Number(initialData.minStock) ||
+      formData.unit !== initialData.unit ||
+      formatNumber(parseFloat(formData.lastPrice)) !== formatNumber(initialData.lastPrice || 0) ||
+      (formData.notes || '').trim() !== (initialData.notes || '').trim()
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.category !== '' ||
+      formData.currentStock !== 0 ||
+      formData.minStock !== 5 ||
+      formData.unit !== 'kg' ||
+      formData.lastPrice !== '0.00' ||
+      formData.notes.trim() !== ''
+    )
+  }, [initialData, hasChanges, formData])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
 
   const validate = () => {
@@ -102,7 +125,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 pb-6">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {/* Name */}
       <div className="flex flex-col gap-2">
         <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
@@ -337,13 +360,15 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         </motion.div>
       )}
 
-      <button 
-        type="submit" 
-        disabled={!hasChanges}
-        className={`btn-primary w-full h-14 text-lg shadow-xl mt-4 rounded-md transition-all ${isDuplicate ? 'bg-amber-600 hover:bg-amber-700' : ''} ${!hasChanges ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
-      >
-        {isRestock ? 'Restock' : initialData ? 'Update Pantry Item' : isDuplicate ? 'Merge to Existing Record' : 'Save to Pantry'}
-      </button>
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
+        <button 
+          type="submit" 
+          disabled={!hasChanges}
+          className={`btn-primary w-full h-14 text-lg shadow-xl rounded-md transition-all ${isDuplicate ? 'bg-amber-600 hover:bg-amber-700' : ''} ${!hasChanges ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+        >
+          {isRestock ? 'Restock' : initialData ? 'Update Pantry Item' : isDuplicate ? 'Merge to Existing Record' : 'Save to Pantry'}
+        </button>
+      </div>
 
       <ConfirmModal
         isOpen={showConfirm}
@@ -360,6 +385,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         }
         confirmText={isRestock ? 'Yes, Restock' : initialData ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
 
     </form>

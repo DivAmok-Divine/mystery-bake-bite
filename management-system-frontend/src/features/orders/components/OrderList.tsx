@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   ShoppingBag, Eye, 
   Pencil, Plus, Search, BarChart3,
@@ -22,11 +23,12 @@ import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
 
-import { DateRangePicker, type DateRange } from '@shared/ui/molecules/DateRangePicker'
+import { DateRangePicker, type DateRange } from '@shared/ui/molecules/calender/DateRangePicker.tsx'
 
 export const OrderList: React.FC = () => {
   const { isAdmin } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingOrder, setIsAddingOrder] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isViewingOrder, setIsViewingOrder] = useState(false)
@@ -34,6 +36,7 @@ export const OrderList: React.FC = () => {
   const [isAddingCustomerInOrder, setIsAddingCustomerInOrder] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
   
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
   const [orderToComplete, setOrderToComplete] = useState<Order | null>(null)
@@ -58,8 +61,8 @@ export const OrderList: React.FC = () => {
 
   const baseFilteredOrders = useMemo(() => {
     return orders.filter(o => {
-      const matchesSearch = o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          o.items.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSearch = o.customerName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                          o.items.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       
       let matchesDate = true
       if (timeView === 'Today') {
@@ -79,7 +82,7 @@ export const OrderList: React.FC = () => {
       
       return matchesSearch && matchesDate
     })
-  }, [orders, searchQuery, timeView, dateRange])
+  }, [orders, debouncedSearchQuery, timeView, dateRange])
 
   const getStatusCount = (status: string) => {
     if (status === 'All') return baseFilteredOrders.length
@@ -343,9 +346,15 @@ export const OrderList: React.FC = () => {
           {filteredOrders.map((order) => (
             <div key={order.id} className="card flex flex-col gap-3 group">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg leading-tight">{order.customerName}</h3>
-                  <p className="text-sm text-brand-chocolate/60 line-clamp-2">{order.items}</p>
+                <div className="flex-1 min-w-0">
+                  <div 
+                    onClick={() => handleViewDetails(order)}
+                    className="cursor-pointer hover:opacity-80 active:scale-[0.99] transition-all"
+                    title="View Order Details"
+                  >
+                    <h3 className="text-lg leading-tight">{order.customerName}</h3>
+                    <p className="text-sm text-brand-chocolate/60 line-clamp-2">{order.items}</p>
+                  </div>
                   <div className="flex items-center gap-3 mt-2">
                     <button 
                       onClick={() => handleViewDetails(order)}
@@ -437,18 +446,23 @@ export const OrderList: React.FC = () => {
         onClose={() => {
           setIsAddingOrder(false)
           setIsAddingCustomerInOrder(false)
+          setIsFormDirty(false)
         }} 
         onBack={isAddingCustomerInOrder ? () => setIsAddingCustomerInOrder(false) : undefined}
         title={isAddingCustomerInOrder ? "Add New Customer" : "New Order"}
         subtitle={isAddingCustomerInOrder ? "Enter details for your new bite lover" : "Create a new order for your bakery"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         <OrderForm 
           onSuccess={() => {
             setIsAddingOrder(false)
             setIsAddingCustomerInOrder(false)
+            setIsFormDirty(false)
           }} 
           isAddingNewCustomer={isAddingCustomerInOrder}
           setIsAddingNewCustomer={setIsAddingCustomerInOrder}
+          onDirtyChange={setIsFormDirty}
         />
       </BottomSheet>
 
@@ -485,13 +499,14 @@ export const OrderList: React.FC = () => {
           setIsEditingOrder(false)
           setSelectedOrder(null)
           setIsAddingCustomerInOrder(false)
+          setIsFormDirty(false)
         }} 
         onBack={isAddingCustomerInOrder ? () => setIsAddingCustomerInOrder(false) : undefined}
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedOrder?.id}
         title={isAddingCustomerInOrder ? "Add New Customer" : "Edit Order"}
         subtitle={isAddingCustomerInOrder ? "Enter details for your new bite lover" : "Modify order details"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         {selectedOrder && (
           <OrderForm 
@@ -499,10 +514,12 @@ export const OrderList: React.FC = () => {
               setIsEditingOrder(false)
               setSelectedOrder(null)
               setIsAddingCustomerInOrder(false)
+              setIsFormDirty(false)
             }} 
             initialData={selectedOrder}
             isAddingNewCustomer={isAddingCustomerInOrder}
             setIsAddingNewCustomer={setIsAddingCustomerInOrder}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -529,6 +546,7 @@ export const OrderList: React.FC = () => {
         }
         confirmText="Yes, Mark as Done"
         isDestructive={false}
+        watermarkType="complete"
       />
 
       {/* Cancel Confirmation */}
@@ -554,6 +572,7 @@ export const OrderList: React.FC = () => {
         }
         confirmText="Yes, Cancel Order"
         isDestructive={true}
+        watermarkType="cancel"
       />
       <BottomSheet 
         isOpen={isShowingSummary} 

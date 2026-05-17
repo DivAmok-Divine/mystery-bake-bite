@@ -48,11 +48,12 @@ export const formatPhone = (phone: string): string => {
   return phone
 }
 
-/**
- * Validates a Ghanaian phone number format (expects 10 digits starting with 0, or 9 digits without leading 0)
- */
 export const isValidGhanaPhone = (phone: string): boolean => {
-  const digits = phone.replace(/\D/g, '')
+  if (!phone) return false
+  let digits = phone.replace(/\D/g, '')
+  if (digits.startsWith('233')) {
+    digits = digits.slice(3)
+  }
   return (digits.length === 10 && digits.startsWith('0')) || (digits.length === 9 && !digits.startsWith('0'))
 }
 

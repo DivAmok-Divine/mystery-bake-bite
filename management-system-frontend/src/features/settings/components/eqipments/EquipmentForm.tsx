@@ -6,7 +6,7 @@ import {
   ChevronDown, Minus, Plus
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { Calendar } from '@shared/ui/molecules/DateCalendar'
+import { Calendar } from '@shared/ui/molecules/calender/DateCalendar'
 import { useClickOutside } from '@backend/lib/hooks'
 import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
 import type { Equipment } from '@backend/lib/db'
@@ -16,9 +16,10 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 interface EquipmentFormProps {
   onSuccess: () => void
   initialData?: Equipment
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
-export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initialData }) => {
+export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
   const { addEquipment, updateEquipment } = useEquipment()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -82,6 +83,43 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
     onSuccess()
   }
 
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    
+    const initialPrice = initialData ? formatNumber(initialData.price || 0) : '0.00'
+    const initialPurchaseDate = safeIsoString(initialData?.purchaseDate)
+    const initialLastMaintained = safeIsoString(initialData?.lastMaintained)
+
+    return (
+      formData.name.trim() !== (initialData.name || '').trim() ||
+      formData.category !== (initialData.category || '') ||
+      formData.status !== (initialData.status || '') ||
+      formData.purchaseDate !== initialPurchaseDate ||
+      formData.lastMaintained !== initialLastMaintained ||
+      formData.price !== initialPrice ||
+      (formData.serialNumber || '').trim() !== (initialData.serialNumber || '').trim() ||
+      (formData.notes || '').trim() !== (initialData.notes || '').trim()
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.category.trim() !== '' ||
+      formData.status !== '' ||
+      formData.price !== '0.00' ||
+      formData.serialNumber.trim() !== '' ||
+      formData.notes.trim() !== ''
+    )
+  }, [initialData, hasChanges, formData])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
@@ -92,8 +130,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
   const statuses = ['Operational', 'Maintenance', 'Broken']
 
   return (
-    <div className="flex flex-col gap-5 pb-6">
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         {/* Name */}
         <div className="flex flex-col gap-2">
           <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
@@ -335,20 +373,10 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
           />
         </div>
 
-        <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5 mt-4">
+        <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
           <button 
             type="submit" 
-            disabled={!!initialData && JSON.stringify(formData) === JSON.stringify({
-              name: initialData?.name || '',
-              category: initialData?.category || '',
-              status: initialData?.status || '',
-              purchaseDate: safeIsoString(initialData?.purchaseDate),
-              lastMaintained: safeIsoString(initialData?.lastMaintained),
-              price: initialData ? formatNumber(initialData.price || 0) : '0.00',
-              serialNumber: initialData?.serialNumber || '',
-              notes: initialData?.notes || '',
-              createdAt: initialData?.createdAt ? new Date(initialData.createdAt).toISOString() : formData.createdAt
-            })}
+            disabled={!!initialData && !hasChanges}
             className="btn-primary w-full h-14 text-lg shadow-xl rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {initialData ? 'Update Equipment' : 'Save Equipment'}
@@ -367,6 +395,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
         }
         confirmText={initialData ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
 
       {/* Calendars */}

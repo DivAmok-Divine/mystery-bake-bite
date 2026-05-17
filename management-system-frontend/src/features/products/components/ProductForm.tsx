@@ -11,9 +11,10 @@ import type { Product } from '@backend/lib/db'
 interface ProductFormProps {
   onSuccess: () => void
   initialData?: Product
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
   const { addProduct, updateProduct } = useProducts()
   const { categories, addCategory } = useCategories()
   
@@ -160,6 +161,41 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
     onSuccess()
   }
 
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    
+    const initialPrice = initialData ? formatNumber(initialData.price || 0) : '0.00'
+    const initialImages = initialData?.images || (initialData?.image ? [initialData.image] : [])
+    
+    const isImagesEqual = formData.images.length === initialImages.length &&
+      formData.images.every((img, idx) => img === initialImages[idx])
+
+    return (
+      formData.name.trim() !== (initialData.name || '').trim() ||
+      formData.price !== initialPrice ||
+      formData.category !== (initialData.category || '') ||
+      formData.description.trim() !== (initialData.description || '').trim() ||
+      !isImagesEqual
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.price !== '0.00' ||
+      formData.category !== '' ||
+      formData.description.trim() !== '' ||
+      formData.images.length > 0
+    )
+  }, [initialData, hasChanges, formData])
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
@@ -167,7 +203,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {/* Image Upload */}
       <div className="flex flex-col gap-2">
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center justify-between gap-2">
@@ -423,17 +459,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
         />
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5 mt-4">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!initialData && JSON.stringify(formData) === JSON.stringify({
-            name: initialData?.name || '',
-            price: initialData ? formatNumber(initialData.price || 0) : '0.00',
-            category: initialData?.category || '',
-            description: initialData?.description || '',
-            image: initialData?.image || '',
-            images: initialData?.images || (initialData?.image ? [initialData.image] : [])
-          })}
+          disabled={!!initialData && !hasChanges}
           className="btn-primary w-full h-14 text-lg shadow-xl rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {initialData ? 'Save Changes' : 'Save Product'}
@@ -459,6 +488,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
         }
         confirmText={initialData ? 'Yes, Save' : 'Yes, Add'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )
