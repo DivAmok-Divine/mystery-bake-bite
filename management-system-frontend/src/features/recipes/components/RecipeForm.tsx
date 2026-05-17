@@ -146,12 +146,14 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDir
         await updateRecipe({ ...recipeData, id: recipe.id })
         notify({
           type: 'update',
+          title: 'Recipe Updated',
           message: `Recipe ${formData.title} successfully updated!`
         })
       } else {
         await addRecipe(recipeData)
         notify({
           type: 'add',
+          title: 'Recipe Created',
           message: `Recipe ${formData.title} successfully added!`
         })
       }

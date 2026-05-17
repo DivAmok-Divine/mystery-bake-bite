@@ -103,6 +103,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
       setIsDropdownOpen(false)
       notify({
         type: 'add',
+        title: 'Category Added',
         message: `Category "${sanitizedName}" successfully added!`
       })
     } catch (e: any) {
@@ -130,6 +131,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
       setNewCategoryName('')
       notify({
         type: 'update',
+        title: 'Category Updated',
         message: `Category renamed to "${sanitizedName}" successfully!`
       })
     } catch (e: any) {
@@ -158,6 +160,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
       setNewCategoryName('')
       notify({
         type: 'delete',
+        title: 'Category Removed',
         message: `Category "${catToDelete?.name || ''}" successfully deleted!`
       })
     } catch (e: any) {
@@ -185,6 +188,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
         })
         notify({
           type: 'update',
+          title: 'Bite Updated',
           message: `Bite ${sanitizedData.name} successfully updated!`
         })
       } else {
@@ -194,6 +198,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
         })
         notify({
           type: 'add',
+          title: 'Bite Added',
           message: `Bite ${sanitizedData.name} successfully added!`
         })
       }

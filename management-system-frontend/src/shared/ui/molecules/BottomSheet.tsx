@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { XCloseBtn } from '../atoms/XCloseBtn'
 import { ArrowLeft } from 'lucide-react'
 import { ConfirmModal } from './ConfirmModal'
+import { useNotification } from './Notification'
 
 interface BottomSheetProps {
   isOpen: boolean
@@ -31,6 +32,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   disableSwipe = false,
   hasUnsavedChanges = false
 }) => {
+  const { notify } = useNotification()
   const dragControls = useDragControls()
   const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false)
 
@@ -214,6 +216,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
             onClose={() => setShowDiscardConfirm(false)}
             onConfirm={() => {
               setShowDiscardConfirm(false)
+              notify({
+                type: 'delete',
+                title: 'Changes Discarded',
+                message: 'Your unsaved modifications were discarded.'
+              })
               onClose()
             }}
             title="Discard Changes?"

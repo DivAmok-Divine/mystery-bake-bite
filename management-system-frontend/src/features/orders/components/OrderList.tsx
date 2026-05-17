@@ -535,7 +535,8 @@ export const OrderList: React.FC = () => {
             try {
               await updateOrder({ id: orderToComplete.id, changes: { status: 'Completed' } })
               notify({
-                type: 'update',
+                type: 'add',
+                title: 'Order Delivered',
                 message: `Order ${orderToComplete.orderNumber} successfully completed!`
               })
               // Update selectedOrder if it's the one being completed
@@ -572,6 +573,7 @@ export const OrderList: React.FC = () => {
               await updateOrder({ id: orderToCancel.id, changes: { status: 'Cancelled' } })
               notify({
                 type: 'delete',
+                title: 'Order Cancelled',
                 message: `Order ${orderToCancel.orderNumber} successfully cancelled!`
               })
               // Update selectedOrder if it's the one being cancelled

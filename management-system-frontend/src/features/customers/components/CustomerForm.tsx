@@ -54,6 +54,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         })
         notify({
           type: 'update',
+          title: 'Customer Updated',
           message: `Customer ${sanitizedData.name} successfully updated!`
         })
       } else {
@@ -65,6 +66,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         })
         notify({
           type: 'add',
+          title: 'Customer Created',
           message: `Customer ${sanitizedData.name} successfully added!`
         })
       }

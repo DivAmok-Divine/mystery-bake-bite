@@ -120,6 +120,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         await updatePantryItem({ id: initialData.id, changes: itemData })
         notify({
           type: 'update',
+          title: isRestock ? 'Ingredient Restocked' : 'Ingredient Updated',
           message: isRestock 
             ? `Successfully restocked ${itemData.name}!` 
             : `Ingredient ${itemData.name} successfully updated!`
@@ -128,6 +129,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         await addPantryItem(itemData)
         notify({
           type: 'add',
+          title: 'Ingredient Added',
           message: `Ingredient ${itemData.name} successfully added!`
         })
       }

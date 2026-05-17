@@ -83,12 +83,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
         await updateEquipment({ id: initialData.id, changes: equipmentData })
         notify({
           type: 'update',
+          title: 'Equipment Updated',
           message: `Equipment ${formData.name} successfully updated!`
         })
       } else {
         await addEquipment(equipmentData)
         notify({
           type: 'add',
+          title: 'Equipment Added',
           message: `Equipment ${formData.name} successfully added!`
         })
       }

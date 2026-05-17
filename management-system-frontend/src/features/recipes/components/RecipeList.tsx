@@ -206,6 +206,7 @@ export const RecipeList: React.FC = () => {
               await deleteRecipe(recipeToDelete)
               notify({
                 type: 'delete',
+                title: 'Recipe Removed',
                 message: `Recipe ${recipe?.title || ''} successfully deleted!`
               })
             } catch (err) {

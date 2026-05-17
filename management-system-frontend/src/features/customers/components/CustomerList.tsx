@@ -296,6 +296,7 @@ export const CustomerList: React.FC = () => {
               await deleteCustomer(customerToDelete)
               notify({
                 type: 'delete',
+                title: 'Customer Removed',
                 message: `Customer ${customer?.name || ''} successfully deleted!`
               })
             } catch (err: any) {

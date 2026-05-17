@@ -460,6 +460,7 @@ export const PantryList: React.FC = () => {
               await deletePantryItem(itemToDelete)
               notify({
                 type: 'delete',
+                title: 'Ingredient Removed',
                 message: `Ingredient ${item?.name || ''} successfully removed!`
               })
             } catch (err) {

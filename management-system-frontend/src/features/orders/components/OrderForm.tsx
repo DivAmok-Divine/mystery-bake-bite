@@ -218,6 +218,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         })
         notify({
           type: 'update',
+          title: 'Order Updated',
           message: `Order ${initialData.orderNumber} successfully updated!`
         })
       } else {
@@ -244,6 +245,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         })
         notify({
           type: 'add',
+          title: 'Order Created',
           message: `Order for ${sanitizedData.customerName} successfully created!`
         })
       }

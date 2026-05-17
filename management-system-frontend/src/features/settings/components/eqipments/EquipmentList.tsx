@@ -311,6 +311,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
               await deleteEquipment(itemToDelete)
               notify({
                 type: 'delete',
+                title: 'Equipment Removed',
                 message: `Equipment ${item?.name || ''} successfully removed!`
               })
             } catch (err) {
