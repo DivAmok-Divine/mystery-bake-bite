@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useProducts } from '../api/useProducts'
 import { useCategories } from '../api/useCategories'
 import { 
@@ -68,19 +68,22 @@ export const ProductList: React.FC = () => {
     setActiveTabs(newTabs)
   }
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTab = activeTabs.includes('All') || activeTabs.includes(p.category)
-    return matchesSearch && matchesTab
-  })
+  const baseFilteredProducts = useMemo(() => {
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [products, searchQuery])
+
+  const filteredProducts = useMemo(() => {
+    return baseFilteredProducts.filter(p => {
+      return activeTabs.includes('All') || activeTabs.includes(p.category)
+    })
+  }, [baseFilteredProducts, activeTabs])
 
   // Get count for each category
   const getCategoryCount = (category: string) => {
-    const baseItems = products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    if (category === 'All') return baseItems.length
-    return baseItems.filter(p => p.category === category).length
+    if (category === 'All') return baseFilteredProducts.length
+    return baseFilteredProducts.filter(p => p.category === category).length
   }
 
   // Dynamic category tabs

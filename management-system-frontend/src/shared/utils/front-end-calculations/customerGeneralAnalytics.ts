@@ -71,3 +71,10 @@ export const getCustomersInPeriod = (customers: Customer[], orders: Order[]) => 
     customerNamesInPeriod.has(c.name)
   )
 }
+
+/**
+ * Calculates total orders for a specific customer
+ */
+export const calculateCustomerOrdersCount = (orders: Order[], customerId: string | number): number => {
+  return orders.filter((o) => String(o.customerId) === String(customerId)).length
+}

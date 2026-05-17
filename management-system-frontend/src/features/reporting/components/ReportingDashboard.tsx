@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useOrders } from '../../orders/api/useOrders'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { 
@@ -26,19 +26,39 @@ export const ReportingDashboard: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null })
 
   // Filter Logic using centralized utilities
-  const filteredOrders = filterOrdersByTimeframe(orders, timeView, dateRange)
-  const filteredCustomers = filterCustomersByTimeframe(customers, timeView, dateRange)
+  const filteredOrders = useMemo(() => {
+    return filterOrdersByTimeframe(orders, timeView, dateRange)
+  }, [orders, timeView, dateRange])
 
-  const completedOrders = filteredOrders.filter(o => o.status === 'Completed')
-  const pendingOrders = filteredOrders.filter(o => o.status === 'Pending')
-  const totalSales = calculateTotalRevenue(completedOrders)
-  const pendingSales = calculateTotalRevenue(pendingOrders)
+  const filteredCustomers = useMemo(() => {
+    return filterCustomersByTimeframe(customers, timeView, dateRange)
+  }, [customers, timeView, dateRange])
+
+  const completedOrders = useMemo(() => {
+    return filteredOrders.filter(o => o.status === 'Completed')
+  }, [filteredOrders])
+
+  const pendingOrders = useMemo(() => {
+    return filteredOrders.filter(o => o.status === 'Pending')
+  }, [filteredOrders])
+
+  const totalSales = useMemo(() => {
+    return calculateTotalRevenue(completedOrders)
+  }, [completedOrders])
+
+  const pendingSales = useMemo(() => {
+    return calculateTotalRevenue(pendingOrders)
+  }, [pendingOrders])
 
   // Activity Pulse Logic using centralized utility
-  const { last7Days, maxCount } = calculateActivityPulse(filteredOrders)
+  const { last7Days, maxCount } = useMemo(() => {
+    return calculateActivityPulse(filteredOrders)
+  }, [filteredOrders])
 
   // Top Bite Logic
-  const topBites = getPopularProducts(filteredOrders, 4)
+  const topBites = useMemo(() => {
+    return getPopularProducts(filteredOrders, 4)
+  }, [filteredOrders])
 
   // Top Buyers Logic (Calculated from filtered orders)
   const topBuyers = useTopBuyers(filteredOrders, customers, 4)

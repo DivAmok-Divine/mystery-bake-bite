@@ -32,7 +32,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order, onCancel, onC
           </button>
           <div>
             <h3 className="text-sm font-bold text-brand-chocolate">Back to Order</h3>
-            <p className="text-[10px] text-brand-chocolate/40 font-bold uppercase tracking-widest">Viewing Customer Profile</p>
+            <p className="text-xs text-brand-chocolate/40 font-bold tracking-widest">Viewing Customer Profile</p>
           </div>
         </div>
         

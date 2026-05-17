@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { format } from 'date-fns'
 import { 
   User, ShoppingCart, Calendar, 
@@ -8,6 +8,8 @@ import {
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import type { Order } from '@backend/lib/db'
 import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { useOrders } from '../api/useOrders'
+import { calculateCustomerOrdersCount } from '@shared/utils/front-end-calculations/customerGeneralAnalytics'
 
 interface OrderReceiptProps {
   order: Order
@@ -15,6 +17,11 @@ interface OrderReceiptProps {
 }
 
 export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order, onViewCustomer }) => {
+  const { orders } = useOrders()
+  const customerOrdersCount = useMemo(() => {
+    return calculateCustomerOrdersCount(orders, order.customerId)
+  }, [orders, order.customerId])
+
   return (
     <div id="printable-receipt" className="flex flex-col gap-3 pb-4">
       {/* Receipt Header (Print Only) */}
@@ -58,7 +65,9 @@ export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order, onViewCustome
         <div className="bg-brand-surface border border-brand-chocolate/10 rounded-md p-4 flex items-center justify-between group">
           <div>
             <p className="text-lg font-display text-brand-chocolate">{order.customerName}</p>
-            <p className="text-xs text-brand-chocolate/40 mt-1 italic">Linked to customer record #{order.customerId}</p>
+            <p className="text-xs text-brand-chocolate/40 mt-1 italic">
+              {customerOrdersCount} Total Order{customerOrdersCount !== 1 ? 's' : ''}
+            </p>
           </div>
           {onViewCustomer && (
             <button 

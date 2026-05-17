@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useOrders } from '../api/useOrders'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { useProducts } from '../../products/api/useProducts'
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { CustomerForm } from '../../customers/components/CustomerForm'
-import { Calendar } from '@shared/ui/molecules/Calendar'
+import { Calendar } from '@shared/ui/molecules/DateCalendar'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { useClickOutside } from '@backend/lib/hooks'
 import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
@@ -55,6 +55,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   
   const customerDropdownRef = useClickOutside(() => setIsDropdownOpen(false))
   const productDropdownRef = useClickOutside(() => setIsProductDropdownOpen(false))
+
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+  }, [customers, customerSearch])
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+  }, [products, productSearch])
 
   
   // Try to parse initial items if editing
@@ -297,10 +305,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               </div>
             ) : (
               <div className="p-1">
-                {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length > 0 ? (
-                  customers
-                    .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                    .map(customer => (
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map(customer => (
                       <button
                         key={customer.id}
                         type="button"
@@ -367,9 +373,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
             <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1 pr-1 custom-scrollbar">
               <p className="text-[10px] font-bold text-brand-chocolate/40 px-2 pt-1 pb-1 ">Select a product</p>
-              {products
-                .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
-                .map(p => (
+              {filteredProducts.map(p => (
                   <button
                     key={p.id}
                     type="button"
@@ -380,7 +384,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     <span className="text-[10px] font-medium text-brand-chocolate/40 group-hover:text-brand-chocolate">{formatCurrency(p.price)}</span>
                   </button>
                 ))}
-              {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+              {filteredProducts.length === 0 && (
                 <p className="text-[10px] text-center py-6 text-brand-chocolate/40 font-medium italic">No products found</p>
               )}
             </div>

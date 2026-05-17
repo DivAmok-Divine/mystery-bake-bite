@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { 
   Plus, Package, Pencil, Trash2, 
   Search, BarChart3,
@@ -18,8 +18,10 @@ import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilte
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import type { PantryItem } from '@backend/lib/db'
 import { getAdjustedStock, calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
+import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
 
 export const PantryList: React.FC = () => {
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
@@ -47,49 +49,44 @@ export const PantryList: React.FC = () => {
   const statuses = ['All', 'In Stock', 'Low Stock', 'Out of Stock']
 
 
-  const filteredItems = (pantryItems || []).filter(item => {
-    if (!item) return false
-    const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
-    return matchesSearch && matchesCategory && matchesStatus
-  })
+  const baseFilteredItems = useMemo(() => {
+    return (pantryItems || []).filter(item => {
+      if (!item) return false
+      return (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+             (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+    })
+  }, [pantryItems, searchQuery])
 
+  const filteredItems = useMemo(() => {
+    return baseFilteredItems.filter(item => {
+      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
+      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
+      return matchesCategory && matchesStatus
+    })
+  }, [baseFilteredItems, activeCategories, activeStatuses])
 
   const getCategoryCount = (cat: string) => {
-    if (!pantryItems) return 0
-    return pantryItems.filter(item => {
-      const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
-      const matchesThisCategory = cat === 'All' || item.category === cat
-      return matchesSearch && matchesStatus && matchesThisCategory
-    }).length
+    const baseItemsForCategory = baseFilteredItems.filter(item => 
+      activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
+    )
+    if (cat === 'All') return baseItemsForCategory.length
+    return baseItemsForCategory.filter(item => item.category === cat).length
   }
 
-
   const toggleCategory = (cat: string) => {
-    if (cat === 'All') { setActiveCategories(['All']); return }
-    let newCats = activeCategories.includes('All') ? [] : [...activeCategories]
-    newCats = newCats.includes(cat) ? newCats.filter(c => c !== cat) : [...newCats, cat]
-    setActiveCategories(newCats.length === 0 ? ['All'] : newCats)
+    setActiveCategories(toggleFilterValue(activeCategories, cat))
   }
 
   const toggleStatus = (stat: string) => {
-    if (stat === 'All') { setActiveStatuses(['All']); return }
-    let newStats = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    newStats = newStats.includes(stat) ? newStats.filter(s => s !== stat) : [...newStats, stat]
-    setActiveStatuses(newStats.length === 0 ? ['All'] : newStats)
+    setActiveStatuses(toggleFilterValue(activeStatuses, stat))
   }
 
   const getStatusCount = (stat: string) => {
-    if (!pantryItems) return 0
-    return pantryItems.filter(item => {
-      const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
-      const matchesThisStatus = stat === 'All' || (item.status || 'In Stock') === stat
-      return matchesSearch && matchesCategory && matchesThisStatus
-    }).length
+    const baseItemsForStatus = baseFilteredItems.filter(item => 
+      activeCategories.includes('All') || activeCategories.includes(item.category)
+    )
+    if (stat === 'All') return baseItemsForStatus.length
+    return baseItemsForStatus.filter(item => (item.status || 'In Stock') === stat).length
   }
 
   const handleAdjustStock = (e: React.MouseEvent, item: PantryItem, delta: number) => {
@@ -180,9 +177,7 @@ export const PantryList: React.FC = () => {
 
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-28 glass-skeleton rounded-md" />)}
-        </div>
+        <ListSkeleton count={4} className="h-28" />
       ) : (pantryItems || []).length === 0 ? (
         <EmptyState
           icon={ShoppingCart}

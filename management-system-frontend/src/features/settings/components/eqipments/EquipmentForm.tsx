@@ -6,7 +6,7 @@ import {
   ChevronDown, Minus, Plus
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { Calendar } from '@shared/ui/molecules/Calendar'
+import { Calendar } from '@shared/ui/molecules/DateCalendar'
 import { useClickOutside } from '@backend/lib/hooks'
 import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
 import type { Equipment } from '@backend/lib/db'

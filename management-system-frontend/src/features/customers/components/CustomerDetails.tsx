@@ -1,7 +1,8 @@
 import React from 'react'
-import { User, Phone, Mail, Plus } from 'lucide-react'
+import { User, Phone, Mail, Plus, Info } from 'lucide-react'
 import type { Customer } from '@backend/lib/db'
 import { getStatusTextClass } from '@shared/ui/atoms/StatusBadge'
+import { formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
 
 interface CustomerDetailsProps {
   customer: Customer
@@ -20,15 +21,31 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customer }) =>
             <Plus size={14} />
             <span>Customer since {new Date(customer.createdAt).toLocaleDateString()}</span>
           </div>
-          <p className={`text-sm font-bold mt-0.5 ${getStatusTextClass(customer.status)}`}>
-            {customer.status}
-          </p>
+          <div className="flex items-center gap-1.5 mt-1 relative group/tooltip">
+            <p className={`text-sm font-bold ${getStatusTextClass(customer.status)}`}>
+              {customer.status}
+            </p>
+            <div className="text-brand-chocolate/40 cursor-help transition-all hover:text-brand-chocolate group-hover/tooltip:scale-110">
+              <Info size={13} strokeWidth={2.5} />
+            </div>
+            {/* Tooltip Popup */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2.5 bg-[#3D261C] text-white text-[10px] rounded-lg shadow-2xl opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-all transform scale-95 group-hover/tooltip:scale-100 z-50 text-center leading-relaxed">
+              <p className="font-bold mb-1 underline decoration-white/20 underline-offset-2">
+                {customer.status} Customer
+              </p>
+              {customer.status === 'Active' 
+                ? "This customer has placed at least one order within the last 30 days." 
+                : "This customer hasn't placed an order in more than 30 days."
+              }
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#3D261C]" />
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3">
         <a 
-          href={`tel:${customer.phone}`}
+          href={`tel:${formatPhone(customer.phone).replace(/\s+/g, '')}`}
           className="card-glass p-4 rounded-md flex items-center gap-4 border border-brand-chocolate/5 hover:bg-brand-dough/5 transition-colors"
         >
           <div className="w-10 h-10 rounded-md bg-brand-cream flex items-center justify-center text-brand-chocolate">
@@ -36,7 +53,7 @@ export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customer }) =>
           </div>
           <div>
             <p className="text-sm font-bold text-brand-chocolate/40 ">Phone Number</p>
-            <p className="font-bold">{customer.phone}</p>
+            <p className="font-bold">{formatPhone(customer.phone)}</p>
           </div>
         </a>
 
