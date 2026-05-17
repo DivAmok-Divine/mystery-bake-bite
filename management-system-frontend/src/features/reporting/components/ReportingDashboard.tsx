@@ -16,6 +16,7 @@ import {
   filterCustomersByTimeframe, 
   calculateActivityPulse 
 } from '@shared/utils/front-end-calculations/reportingAnalytics'
+import { ActivityPulseChart } from './ActivityPulseChart'
 
 export const ReportingDashboard: React.FC = () => {
   const { orders, isLoading: ordersLoading } = useOrders()
@@ -51,9 +52,9 @@ export const ReportingDashboard: React.FC = () => {
   }, [pendingOrders])
 
   // Activity Pulse Logic using centralized utility
-  const { last7Days, maxCount } = useMemo(() => {
-    return calculateActivityPulse(filteredOrders)
-  }, [filteredOrders])
+  const { points: pulsePoints, maxCount } = useMemo(() => {
+    return calculateActivityPulse(filteredOrders, timeView, dateRange)
+  }, [filteredOrders, timeView, dateRange])
 
   // Top Bite Logic
   const topBites = useMemo(() => {
@@ -62,6 +63,8 @@ export const ReportingDashboard: React.FC = () => {
 
   // Top Buyers Logic (Calculated from filtered orders)
   const topBuyers = useTopBuyers(filteredOrders, customers, 4)
+
+
 
   const stats = [
     { label: 'Total Sales', value: formatCurrency(totalSales), icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -141,23 +144,7 @@ export const ReportingDashboard: React.FC = () => {
 
       <div className="card flex flex-col gap-4">
         <h3 className="text-sm tracking-tight text-brand-chocolate/40 font-bold">Activity pulse</h3>
-        <div className="flex items-end justify-between h-32 gap-3 pt-4 border-b border-brand-chocolate/5">
-          {last7Days.map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-2">
-              <div 
-                className="w-full bg-brand-chocolate/10 rounded-t-lg transition-all hover:bg-brand-dough relative group min-h-[2px]" 
-                style={{ height: `${(h.count / maxCount) * 100}%` }}
-              >
-                {h.count > 0 && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-brand-chocolate text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
-                    {h.count} {h.count === 1 ? 'order' : 'orders'}
-                  </div>
-                )}
-              </div>
-              <span className="text-[10px] font-bold text-brand-chocolate/50 mb-[-12px]">{h.day}</span>
-            </div>
-          ))}
-        </div>
+        <ActivityPulseChart pulsePoints={pulsePoints} maxCount={maxCount} />
       </div>
 
       <div className="flex flex-col gap-4">

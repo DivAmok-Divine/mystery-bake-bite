@@ -375,6 +375,7 @@ export const ProductList: React.FC = () => {
               await deleteProduct(productToDelete)
               notify({
                 type: 'delete',
+                title: 'Bite Removed',
                 message: `Bite ${product?.name || ''} successfully deleted!`
               })
             } catch (err) {

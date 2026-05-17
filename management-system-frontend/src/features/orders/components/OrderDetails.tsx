@@ -58,7 +58,10 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order, isLoading, on
   const [viewingCustomer, setViewingCustomer] = useState(false)
   const { customers } = useCustomers()
   
-  const customer = customers.find(c => c.id === order.customerId)
+  const customer = customers.find(c => 
+    String(c.id) === String(order.customerId) || 
+    c.name.trim().toLowerCase() === order.customerName.trim().toLowerCase()
+  )
 
   if (viewingCustomer && customer) {
     return (
