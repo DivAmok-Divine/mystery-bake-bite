@@ -13,10 +13,12 @@ import { CustomerSummary } from './CustomerSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { toggleFilterValue, formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Customer } from '@backend/lib/db'
 
 
 export const CustomerList: React.FC = () => {
+  const { notify } = useNotification()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
@@ -287,8 +289,23 @@ export const CustomerList: React.FC = () => {
       <ConfirmModal
         isOpen={customerToDelete !== null}
         onClose={() => setCustomerToDelete(null)}
-        onConfirm={() => {
-          if (customerToDelete) deleteCustomer(customerToDelete)
+        onConfirm={async () => {
+          if (customerToDelete) {
+            const customer = customers.find(c => c.id === customerToDelete)
+            try {
+              await deleteCustomer(customerToDelete)
+              notify({
+                type: 'delete',
+                message: `Customer ${customer?.name || ''} successfully deleted!`
+              })
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to delete customer ${customer?.name || ''}.`
+              })
+            }
+          }
+          setCustomerToDelete(null)
         }}
         title="Delete Customer?"
         message="Are you sure you want to remove this customer? All their order history will remain, but you won't be able to select them for new orders."

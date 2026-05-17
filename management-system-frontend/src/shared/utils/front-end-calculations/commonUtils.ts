@@ -77,3 +77,19 @@ export const toggleFilterValue = (activeValues: string[], valueToToggle: string)
   }
   return newValues
 }
+
+/**
+ * Sanitizes input strings by:
+ * 1. Trimming leading and trailing whitespaces.
+ * 2. Stripping any HTML tags, Javascript scripting, or suspicious characters to prevent XSS.
+ */
+export const sanitizeInput = (val: string | undefined | null): string => {
+  if (val === undefined || val === null) return ''
+  return val
+    .trim()
+    .replace(/<[^>]*>/g, '') // Strip HTML tags
+    .replace(/javascript:/gi, '') // Strip javascript: protocol
+    .replace(/onerror/gi, '') // Strip common XSS attributes
+    .replace(/onload/gi, '')
+    .replace(/onclick/gi, '')
+}

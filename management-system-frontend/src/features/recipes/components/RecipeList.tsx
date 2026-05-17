@@ -9,9 +9,11 @@ import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Recipe } from '@backend/lib/db'
 
 export const RecipeList: React.FC = () => {
+  const { notify } = useNotification()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingRecipe, setIsAddingRecipe] = useState(false)
@@ -197,8 +199,22 @@ export const RecipeList: React.FC = () => {
       <ConfirmModal
         isOpen={recipeToDelete !== null}
         onClose={() => setRecipeToDelete(null)}
-        onConfirm={() => {
-          if (recipeToDelete) deleteRecipe(recipeToDelete)
+        onConfirm={async () => {
+          if (recipeToDelete) {
+            const recipe = recipes.find(r => r.id === recipeToDelete)
+            try {
+              await deleteRecipe(recipeToDelete)
+              notify({
+                type: 'delete',
+                message: `Recipe ${recipe?.title || ''} successfully deleted!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to delete recipe ${recipe?.title || ''}.`
+              })
+            }
+          }
           setRecipeToDelete(null)
         }}
         title="Delete Recipe?"

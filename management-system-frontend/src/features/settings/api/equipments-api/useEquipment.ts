@@ -35,8 +35,8 @@ export const useEquipment = () => {
   return {
     equipment: equipmentQuery.data || [],
     isLoading: equipmentQuery.isLoading,
-    addEquipment: addEquipmentMutation.mutate,
-    updateEquipment: updateEquipmentMutation.mutate,
-    deleteEquipment: deleteEquipmentMutation.mutate,
+    addEquipment: addEquipmentMutation.mutateAsync,
+    updateEquipment: updateEquipmentMutation.mutateAsync,
+    deleteEquipment: deleteEquipmentMutation.mutateAsync,
   }
 }

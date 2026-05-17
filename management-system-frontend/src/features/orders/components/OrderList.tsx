@@ -22,10 +22,12 @@ import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 import { DateRangePicker, type DateRange } from '@shared/ui/molecules/calender/DateRangePicker.tsx'
 
 export const OrderList: React.FC = () => {
+  const { notify } = useNotification()
   const { isAdmin } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
@@ -528,12 +530,23 @@ export const OrderList: React.FC = () => {
       <ConfirmModal 
         isOpen={!!orderToComplete}
         onClose={() => setOrderToComplete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (orderToComplete?.id) {
-            updateOrder({ id: orderToComplete.id, changes: { status: 'Completed' } })
-            // Update selectedOrder if it's the one being completed
-            if (selectedOrder?.id === orderToComplete.id) {
-              setSelectedOrder({ ...selectedOrder, status: 'Completed' })
+            try {
+              await updateOrder({ id: orderToComplete.id, changes: { status: 'Completed' } })
+              notify({
+                type: 'update',
+                message: `Order ${orderToComplete.orderNumber} successfully completed!`
+              })
+              // Update selectedOrder if it's the one being completed
+              if (selectedOrder?.id === orderToComplete.id) {
+                setSelectedOrder({ ...selectedOrder, status: 'Completed' })
+              }
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to complete order ${orderToComplete.orderNumber}.`
+              })
             }
             setOrderToComplete(null)
           }
@@ -553,12 +566,23 @@ export const OrderList: React.FC = () => {
       <ConfirmModal 
         isOpen={!!orderToCancel}
         onClose={() => setOrderToCancel(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (orderToCancel?.id) {
-            updateOrder({ id: orderToCancel.id, changes: { status: 'Cancelled' } })
-            // Update selectedOrder if it's the one being cancelled
-            if (selectedOrder?.id === orderToCancel.id) {
-              setSelectedOrder({ ...selectedOrder, status: 'Cancelled' })
+            try {
+              await updateOrder({ id: orderToCancel.id, changes: { status: 'Cancelled' } })
+              notify({
+                type: 'delete',
+                message: `Order ${orderToCancel.orderNumber} successfully cancelled!`
+              })
+              // Update selectedOrder if it's the one being cancelled
+              if (selectedOrder?.id === orderToCancel.id) {
+                setSelectedOrder({ ...selectedOrder, status: 'Cancelled' })
+              }
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to cancel order ${orderToCancel.orderNumber}.`
+              })
             }
             setOrderToCancel(null)
           }

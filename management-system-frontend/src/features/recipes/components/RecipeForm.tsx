@@ -4,7 +4,8 @@ import { Reorder } from 'framer-motion'
 import { Utensils, BookOpen, Clock, AlertCircle, Plus, X, Info, GripVertical } from 'lucide-react'
 import type { Recipe } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-import { generateId } from '@shared/utils/front-end-calculations/commonUtils'
+import { generateId, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface RecipeFormProps {
   recipe?: Recipe
@@ -18,6 +19,7 @@ interface ListItem {
 }
 
 export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addRecipe, updateRecipe } = useRecipes()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -124,21 +126,42 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDir
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const recipeData = {
-      title: formData.title,
-      ingredients: ingredientsList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
-      method: methodList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
-      notes: formData.notes.trim(),
+      title: sanitizeInput(formData.title),
+      ingredients: ingredientsList
+        .filter(i => i.value.trim())
+        .map(i => `• ${sanitizeInput(i.value)}`)
+        .join('\n'),
+      method: methodList
+        .filter(i => i.value.trim())
+        .map(i => `• ${sanitizeInput(i.value)}`)
+        .join('\n'),
+      notes: sanitizeInput(formData.notes),
       createdAt: recipe?.createdAt || new Date()
     }
 
-    if (recipe?.id) {
-      updateRecipe({ ...recipeData, id: recipe.id })
-    } else {
-      addRecipe(recipeData)
+    try {
+      if (recipe?.id) {
+        await updateRecipe({ ...recipeData, id: recipe.id })
+        notify({
+          type: 'update',
+          message: `Recipe ${formData.title} successfully updated!`
+        })
+      } else {
+        await addRecipe(recipeData)
+        notify({
+          type: 'add',
+          message: `Recipe ${formData.title} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save recipe ${formData.title}.`
+      })
     }
-    onSuccess()
   }
 
   const hasChanges = React.useMemo(() => {

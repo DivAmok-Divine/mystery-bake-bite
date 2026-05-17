@@ -5,7 +5,9 @@ import { Package, Tag, Wallet, FileText, Minus, Plus, PlusCircle, X, ChevronDown
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { useClickOutside } from '@backend/lib/hooks'
 import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Product } from '@backend/lib/db'
+import { sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
 
 
 interface ProductFormProps {
@@ -15,6 +17,7 @@ interface ProductFormProps {
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addProduct, updateProduct } = useProducts()
   const { categories, addCategory } = useCategories()
   
@@ -90,42 +93,58 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
   }
 
   const handleAddNewCategory = async () => {
-    if (!newCategoryName.trim()) return
+    const sanitizedName = sanitizeInput(newCategoryName)
+    if (!sanitizedName) return
     try {
-      await addCategory({ name: newCategoryName.trim(), createdAt: new Date() })
-      setFormData({ ...formData, category: newCategoryName.trim() })
+      await addCategory({ name: sanitizedName, createdAt: new Date() })
+      setFormData({ ...formData, category: sanitizedName })
       setNewCategoryName('')
       setIsAddingNewCategory(false)
       setIsDropdownOpen(false)
-    } catch (e) {
-      console.error(e)
+      notify({
+        type: 'add',
+        message: `Category "${sanitizedName}" successfully added!`
+      })
+    } catch (e: any) {
+      notify({
+        type: 'error',
+        message: e?.message || `Failed to add category "${sanitizedName}".`
+      })
     }
   }
 
   const handleUpdateCategory = async (id: number) => {
-    if (!newCategoryName.trim()) return
+    const sanitizedName = sanitizeInput(newCategoryName)
+    if (!sanitizedName) return
     try {
-      await updateCategory({ id, changes: { name: newCategoryName.trim() } })
+      await updateCategory({ id, changes: { name: sanitizedName } })
       
       // If the currently selected category was renamed, update the form state
       const oldCat = categories.find(c => c.id === id)
       if (oldCat && formData.category === oldCat.name) {
-        setFormData(prev => ({ ...prev, category: newCategoryName.trim() }))
+        setFormData(prev => ({ ...prev, category: sanitizedName }))
       }
       
       setEditingCategoryId(null)
       setIsAddingNewCategory(false)
       setNewCategoryName('')
-    } catch (e) {
-      console.error(e)
+      notify({
+        type: 'update',
+        message: `Category renamed to "${sanitizedName}" successfully!`
+      })
+    } catch (e: any) {
+      notify({
+        type: 'error',
+        message: e?.message || `Failed to update category.`
+      })
     }
   }
 
   const handleConfirmDelete = async () => {
     if (!categoryToDelete) return
+    const id = categoryToDelete
+    const catToDelete = categories.find(c => c.id === id)
     try {
-      const id = categoryToDelete
-      const catToDelete = categories.find(c => c.id === id)
       await deleteCategory(id)
       
       // If the deleted category was selected, reset to default
@@ -137,28 +156,54 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
       setEditingCategoryId(null)
       setIsAddingNewCategory(false)
       setNewCategoryName('')
-    } catch (e) {
-      console.error(e)
+      notify({
+        type: 'delete',
+        message: `Category "${catToDelete?.name || ''}" successfully deleted!`
+      })
+    } catch (e: any) {
+      notify({
+        type: 'error',
+        message: e?.message || `Failed to delete category.`
+      })
     }
   }
 
-  const handleSave = () => {
-    if (initialData?.id) {
-      updateProduct({
-        id: initialData.id,
-        changes: {
-          ...formData,
-          price: parseFloat(formData.price),
-        }
-      })
-    } else {
-      addProduct({
-        ...formData,
-        price: parseFloat(formData.price),
-        createdAt: new Date()
+  const handleSave = async () => {
+    const sanitizedData = {
+      ...formData,
+      name: sanitizeInput(formData.name),
+      category: sanitizeInput(formData.category),
+      description: sanitizeInput(formData.description),
+      price: parseFloat(formData.price)
+    }
+
+    try {
+      if (initialData?.id) {
+        await updateProduct({
+          id: initialData.id,
+          changes: sanitizedData
+        })
+        notify({
+          type: 'update',
+          message: `Bite ${sanitizedData.name} successfully updated!`
+        })
+      } else {
+        await addProduct({
+          ...sanitizedData,
+          createdAt: new Date()
+        })
+        notify({
+          type: 'add',
+          message: `Bite ${sanitizedData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save bite ${formData.name}.`
       })
     }
-    onSuccess()
   }
 
   const hasChanges = React.useMemo(() => {

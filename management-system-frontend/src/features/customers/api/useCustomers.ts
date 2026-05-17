@@ -41,8 +41,8 @@ export const useCustomers = () => {
   return {
     customers: customersQuery.data || [],
     isLoading: customersQuery.isLoading,
-    addCustomer: addCustomerMutation.mutate,
-    updateCustomer: updateCustomerMutation.mutate,
-    deleteCustomer: deleteCustomerMutation.mutate,
+    addCustomer: addCustomerMutation.mutateAsync,
+    updateCustomer: updateCustomerMutation.mutateAsync,
+    deleteCustomer: deleteCustomerMutation.mutateAsync,
   }
 }

@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useCustomers } from '../api/useCustomers.ts'
 import { User, Phone, Mail, MapPin, AlertCircle } from 'lucide-react'
-import { type Customer } from '@backend/lib/db'
-import { isValidGhanaPhone, formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
+import type { Customer } from '@backend/lib/db'
+import { isValidGhanaPhone, formatPhone, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface CustomerFormProps {
   onSuccess: () => void
@@ -12,6 +13,7 @@ interface CustomerFormProps {
 }
 
 export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addCustomer, updateCustomer } = useCustomers()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -36,21 +38,43 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
-    if (initialData?.id) {
-      updateCustomer({
-        id: initialData.id,
-        changes: formData
-      })
-    } else {
-      addCustomer({
-        ...formData,
-        totalOrders: 0,
-        status: 'Inactive',
-        createdAt: new Date()
+  const handleSave = async () => {
+    const sanitizedData = {
+      name: sanitizeInput(formData.name),
+      phone: sanitizeInput(formData.phone),
+      email: sanitizeInput(formData.email),
+      address: sanitizeInput(formData.address)
+    }
+
+    try {
+      if (initialData?.id) {
+        await updateCustomer({
+          id: initialData.id,
+          changes: sanitizedData
+        })
+        notify({
+          type: 'update',
+          message: `Customer ${sanitizedData.name} successfully updated!`
+        })
+      } else {
+        await addCustomer({
+          ...sanitizedData,
+          totalOrders: 0,
+          status: 'Inactive',
+          createdAt: new Date()
+        })
+        notify({
+          type: 'add',
+          message: `Customer ${sanitizedData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save customer ${formData.name}.`
       })
     }
-    onSuccess()
   }
 
   const hasChanges = React.useMemo(() => {
