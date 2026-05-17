@@ -14,6 +14,7 @@ import { ProductDetails } from './ProductDetails'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import type { Product } from '@backend/lib/db'
 import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
@@ -22,6 +23,7 @@ import { ProductSummary } from './ProductSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 
 export const ProductList: React.FC = () => {
+  const { notify } = useNotification()
   const { products, isLoading, deleteProduct } = useProducts()
   const { categories } = useCategories()
   const [searchQuery, setSearchQuery] = useState('')
@@ -366,8 +368,23 @@ export const ProductList: React.FC = () => {
       <ConfirmModal
         isOpen={productToDelete !== null}
         onClose={() => setProductToDelete(null)}
-        onConfirm={() => {
-          if (productToDelete) deleteProduct(productToDelete)
+        onConfirm={async () => {
+          if (productToDelete) {
+            const product = products.find(p => p.id === productToDelete)
+            try {
+              await deleteProduct(productToDelete)
+              notify({
+                type: 'delete',
+                message: `Bite ${product?.name || ''} successfully deleted!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to delete bite ${product?.name || ''}.`
+              })
+            }
+          }
+          setProductToDelete(null)
         }}
         title="Delete Bite?"
         message={

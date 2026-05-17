@@ -35,8 +35,8 @@ export const useProducts = () => {
   return {
     products: productsQuery.data || [],
     isLoading: productsQuery.isLoading,
-    addProduct: addProductMutation.mutate,
-    updateProduct: updateProductMutation.mutate,
-    deleteProduct: deleteProductMutation.mutate,
+    addProduct: addProductMutation.mutateAsync,
+    updateProduct: updateProductMutation.mutateAsync,
+    deleteProduct: deleteProductMutation.mutateAsync,
   }
 }

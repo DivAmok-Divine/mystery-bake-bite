@@ -43,6 +43,6 @@ export const useCategories = () => {
     isLoading: categoriesQuery.isLoading,
     addCategory: addCategoryMutation.mutateAsync,
     updateCategory: updateCategoryMutation.mutateAsync,
-    deleteCategory: deleteCategoryMutation.mutate,
+    deleteCategory: deleteCategoryMutation.mutateAsync,
   }
 }

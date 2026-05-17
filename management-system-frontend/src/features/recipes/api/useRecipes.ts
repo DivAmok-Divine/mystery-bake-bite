@@ -43,8 +43,8 @@ export const useRecipes = () => {
   return {
     recipes: recipesQuery.data || [],
     isLoading: recipesQuery.isLoading,
-    addRecipe: addRecipeMutation.mutate,
-    updateRecipe: updateRecipeMutation.mutate,
-    deleteRecipe: deleteRecipeMutation.mutate,
+    addRecipe: addRecipeMutation.mutateAsync,
+    updateRecipe: updateRecipeMutation.mutateAsync,
+    deleteRecipe: deleteRecipeMutation.mutateAsync,
   }
 }

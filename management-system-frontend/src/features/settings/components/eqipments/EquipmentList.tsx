@@ -23,12 +23,14 @@ import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilte
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface EquipmentListProps {
   onBack: () => void
 }
 
 export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
+  const { notify } = useNotification()
   const { equipment, isLoading, deleteEquipment } = useEquipment()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
@@ -302,8 +304,22 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
       <ConfirmModal
         isOpen={itemToDelete !== null}
         onClose={() => setItemToDelete(null)}
-        onConfirm={() => {
-          if (itemToDelete) deleteEquipment(itemToDelete)
+        onConfirm={async () => {
+          if (itemToDelete) {
+            const item = equipment.find(e => e.id === itemToDelete)
+            try {
+              await deleteEquipment(itemToDelete)
+              notify({
+                type: 'delete',
+                message: `Equipment ${item?.name || ''} successfully removed!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to remove equipment ${item?.name || ''}.`
+              })
+            }
+          }
           setItemToDelete(null)
         }}
         title="Remove Equipment?"

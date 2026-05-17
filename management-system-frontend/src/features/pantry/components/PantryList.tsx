@@ -20,11 +20,13 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { PantryItem } from '@backend/lib/db'
 import { getAdjustedStock, calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
 import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
 
 export const PantryList: React.FC = () => {
+  const { notify } = useNotification()
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -451,8 +453,22 @@ export const PantryList: React.FC = () => {
       <ConfirmModal
         isOpen={itemToDelete !== null}
         onClose={() => setItemToDelete(null)}
-        onConfirm={() => {
-          if (itemToDelete) deletePantryItem(itemToDelete)
+        onConfirm={async () => {
+          if (itemToDelete) {
+            const item = pantryItems.find(i => i.id === itemToDelete)
+            try {
+              await deletePantryItem(itemToDelete)
+              notify({
+                type: 'delete',
+                message: `Ingredient ${item?.name || ''} successfully removed!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to remove ${item?.name || 'ingredient'}.`
+              })
+            }
+          }
           setItemToDelete(null)
         }}
         title="Remove item?"

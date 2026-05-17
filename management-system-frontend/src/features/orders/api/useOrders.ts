@@ -63,8 +63,8 @@ export const useOrders = () => {
   return {
     orders: ordersQuery.data || [],
     isLoading: ordersQuery.isLoading,
-    addOrder: addOrderMutation.mutate,
-    updateOrder: updateOrderMutation.mutate,
-    deleteOrder: deleteOrderMutation.mutate,
+    addOrder: addOrderMutation.mutateAsync,
+    updateOrder: updateOrderMutation.mutateAsync,
+    deleteOrder: deleteOrderMutation.mutateAsync,
   }
 }

@@ -11,6 +11,8 @@ import { useClickOutside } from '@backend/lib/hooks'
 import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
 import type { Equipment } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
+import { sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
 
 
 interface EquipmentFormProps {
@@ -20,6 +22,7 @@ interface EquipmentFormProps {
 }
 
 export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addEquipment, updateEquipment } = useEquipment()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -62,25 +65,40 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const equipmentData = {
-      name: formData.name,
-      category: formData.category,
+      name: sanitizeInput(formData.name),
+      category: sanitizeInput(formData.category),
       status: formData.status as any,
       purchaseDate: new Date(formData.purchaseDate),
       ...(formData.lastMaintained ? { lastMaintained: new Date(formData.lastMaintained) } : {}),
       price: parseFloat(formData.price),
-      serialNumber: formData.serialNumber,
-      notes: formData.notes,
+      serialNumber: sanitizeInput(formData.serialNumber),
+      notes: sanitizeInput(formData.notes),
       createdAt: new Date(formData.createdAt)
     }
 
-    if (initialData?.id) {
-      updateEquipment({ id: initialData.id, changes: equipmentData })
-    } else {
-      addEquipment(equipmentData)
+    try {
+      if (initialData?.id) {
+        await updateEquipment({ id: initialData.id, changes: equipmentData })
+        notify({
+          type: 'update',
+          message: `Equipment ${formData.name} successfully updated!`
+        })
+      } else {
+        await addEquipment(equipmentData)
+        notify({
+          type: 'add',
+          message: `Equipment ${formData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save equipment ${formData.name}.`
+      })
     }
-    onSuccess()
   }
 
   const hasChanges = React.useMemo(() => {

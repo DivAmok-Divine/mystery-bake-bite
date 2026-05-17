@@ -15,8 +15,9 @@ import { useClickOutside } from '@backend/lib/hooks'
 import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
 import { calculateOrderTotal } from '@shared/utils/front-end-calculations/orderAnalytics'
 import { formatCurrency, formatNumber } from '@shared/utils/front-end-calculations/formatters'
-import { generateId, clamp } from '@shared/utils/front-end-calculations/commonUtils'
+import { generateId, clamp, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 
 import { db, type Order } from '@backend/lib/db'
@@ -43,6 +44,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   setIsAddingNewCustomer,
   onDirtyChange
 }) => {
+  const { notify } = useNotification()
   const { orders, addOrder, updateOrder } = useOrders()
   const { customers } = useCustomers()
   const { products } = useProducts()
@@ -196,44 +198,62 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }
 
   const handleSave = async () => {
-    if (initialData) {
-      updateOrder({
-        id: initialData.id!,
-        changes: {
-          ...formData,
-          orderNumber: initialData.orderNumber,
-          customerId: Number(formData.customerId),
-          amount: parseFloat(formData.amount),
-          deadline: new Date(formData.deadline)
-        }
-      })
-    } else {
-      // Guaranteed unique order number check
-      let uniqueOrderNumber = generateOrderNumber()
-      let isUnique = false
-      let attempts = 0
-      
-      while (!isUnique && attempts < 10) {
-        const existing = await db.orders.where('orderNumber').equals(uniqueOrderNumber).count()
-        if (existing === 0) {
-          isUnique = true
-        } else {
-          uniqueOrderNumber = generateOrderNumber()
-          attempts++
-        }
-      }
+    const sanitizedData = {
+      ...formData,
+      customerName: sanitizeInput(formData.customerName),
+      notes: sanitizeInput(formData.notes),
+      customerId: Number(formData.customerId),
+      amount: parseFloat(formData.amount),
+      deadline: new Date(formData.deadline)
+    }
 
-      addOrder({
-        ...formData,
-        orderNumber: uniqueOrderNumber,
-        customerId: Number(formData.customerId),
-        amount: parseFloat(formData.amount),
-        deadline: new Date(formData.deadline),
-        status: 'Pending',
-        createdAt: new Date()
+    try {
+      if (initialData) {
+        await updateOrder({
+          id: initialData.id!,
+          changes: {
+            ...sanitizedData,
+            orderNumber: initialData.orderNumber
+          }
+        })
+        notify({
+          type: 'update',
+          message: `Order ${initialData.orderNumber} successfully updated!`
+        })
+      } else {
+        // Guaranteed unique order number check
+        let uniqueOrderNumber = generateOrderNumber()
+        let isUnique = false
+        let attempts = 0
+        
+        while (!isUnique && attempts < 10) {
+          const existing = await db.orders.where('orderNumber').equals(uniqueOrderNumber).count()
+          if (existing === 0) {
+            isUnique = true
+          } else {
+            uniqueOrderNumber = generateOrderNumber()
+            attempts++
+          }
+        }
+
+        await addOrder({
+          ...sanitizedData,
+          orderNumber: uniqueOrderNumber,
+          status: 'Pending',
+          createdAt: new Date()
+        })
+        notify({
+          type: 'add',
+          message: `Order for ${sanitizedData.customerName} successfully created!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save order.`
       })
     }
-    onSuccess()
   }
 
   const hasChanges = useMemo(() => {

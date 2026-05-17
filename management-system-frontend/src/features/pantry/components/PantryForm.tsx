@@ -10,9 +10,9 @@ import { useClickOutside } from '@backend/lib/hooks'
 import type { PantryItem } from '@backend/lib/db'
 import { determinePantryStatus } from '@shared/utils/front-end-calculations/pantryAnalytics'
 import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
-import { clamp } from '@shared/utils/front-end-calculations/commonUtils'
+import { clamp, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface PantryFormProps {
   onSuccess: () => void
@@ -23,6 +23,7 @@ interface PantryFormProps {
 
 
 export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, isRestock, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { pantryItems, addPantryItem, updatePantryItem } = usePantry()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -104,18 +105,39 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
 
     const itemData = {
       ...formData,
+      name: sanitizeInput(formData.name),
+      category: sanitizeInput(formData.category),
+      unit: sanitizeInput(formData.unit),
+      notes: sanitizeInput(formData.notes),
       lastPrice: parseFloat(formData.lastPrice) || 0,
       status,
       updatedAt: new Date(),
       createdAt: initialData?.createdAt || new Date()
     }
 
-    if (initialData?.id) {
-      await updatePantryItem({ id: initialData.id, changes: itemData })
-    } else {
-      await addPantryItem(itemData)
+    try {
+      if (initialData?.id) {
+        await updatePantryItem({ id: initialData.id, changes: itemData })
+        notify({
+          type: 'update',
+          message: isRestock 
+            ? `Successfully restocked ${itemData.name}!` 
+            : `Ingredient ${itemData.name} successfully updated!`
+        })
+      } else {
+        await addPantryItem(itemData)
+        notify({
+          type: 'add',
+          message: `Ingredient ${itemData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save ingredient ${itemData.name}.`
+      })
     }
-    onSuccess()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
