@@ -7,7 +7,14 @@ export const useOrders = () => {
 
   const ordersQuery = useQuery({
     queryKey: ['orders'],
-    queryFn: () => db.orders.orderBy('deadline').toArray(),
+    queryFn: async () => {
+      const data = await db.orders.toArray()
+      return data.sort((a, b) => {
+        const timeA = new Date((a as any).updatedAt || a.createdAt).getTime()
+        const timeB = new Date((b as any).updatedAt || b.createdAt).getTime()
+        return timeB - timeA
+      })
+    },
   })
 
   const updateCustomerStatus = async (customerId: number) => {
@@ -19,7 +26,7 @@ export const useOrders = () => {
 
   const addOrderMutation = useMutation({
     mutationFn: async (order: Order) => {
-      const id = await db.orders.add(order)
+      const id = await db.orders.add({ ...order, updatedAt: new Date() } as any)
       if (order.customerId) await updateCustomerStatus(order.customerId)
       return id
     },
@@ -31,7 +38,7 @@ export const useOrders = () => {
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ id, changes }: { id: number, changes: Partial<Order> }) => {
-      await db.orders.update(id, changes)
+      await db.orders.update(id, { ...changes, updatedAt: new Date() } as any)
       const order = await db.orders.get(id)
       if (order?.customerId) await updateCustomerStatus(order.customerId)
     },

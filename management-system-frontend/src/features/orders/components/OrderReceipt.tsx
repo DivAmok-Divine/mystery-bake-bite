@@ -23,7 +23,7 @@ export const OrderReceipt: React.FC<OrderReceiptProps> = ({ order, onViewCustome
   }, [orders, order.customerId])
 
   return (
-    <div id="printable-receipt" className="flex flex-col gap-3 pb-4">
+    <div id="printable-receipt" className="flex flex-col gap-3 pb-0">
       {/* Receipt Header (Print Only) */}
       <div className="hidden print:flex flex-col items-center justify-center border-b-2 border-brand-chocolate/20 pb-6 mb-4 text-center">
         <h1 className="text-2xl font-display text-brand-chocolate">MysteryBakeBite</h1>

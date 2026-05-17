@@ -5,8 +5,8 @@ import {
   TrendingUp, Users, ShoppingBag, Clock, 
   Wallet
 } from 'lucide-react'
-import { DatePresetFilter, type DateRange } from '@shared/ui/molecules/DatePresetFilter'
-import { DateRangePicker } from '@shared/ui/molecules/DateRangePicker'
+import { DatePresetFilter, type DateRange } from '@shared/ui/molecules/calender/DatePresetFilter'
+import { DateRangePicker } from '@shared/ui/molecules/calender/DateRangePicker'
 import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
 import { calculateTotalRevenue, getPopularProducts } from '@shared/utils/front-end-calculations/orderAnalytics'
 import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'

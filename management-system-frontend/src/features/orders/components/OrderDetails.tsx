@@ -9,12 +9,52 @@ import { useCustomers } from '../../customers/api/useCustomers'
 import { CustomerDetails } from '../../customers/components/CustomerDetails'
 
 interface OrderDetailsProps {
-  order: Order
+  order?: Order
+  isLoading?: boolean
   onCancel?: () => void
   onComplete?: () => void
 }
 
-export const OrderDetails: React.FC<OrderDetailsProps> = ({ order, onCancel, onComplete }) => {
+export const OrderDetails: React.FC<OrderDetailsProps> = ({ order, isLoading, onCancel, onComplete }) => {
+  if (isLoading || !order) {
+    return (
+      <div className="flex flex-col gap-4 pb-4 animate-pulse">
+        {/* Receipt Header Pulse */}
+        <div className="p-4 bg-brand-cream/10 border border-brand-chocolate/5 rounded-md flex flex-col gap-2">
+          <div className="h-4 w-32 bg-brand-chocolate/10 rounded" />
+          <div className="h-5 w-48 bg-brand-chocolate/10 rounded" />
+        </div>
+
+        {/* Customer Section Pulse */}
+        <div className="p-4 bg-brand-cream/10 border border-brand-chocolate/5 rounded-md flex justify-between items-center">
+          <div className="flex flex-col gap-1.5">
+            <div className="h-3 w-16 bg-brand-chocolate/10 rounded" />
+            <div className="h-4 w-36 bg-brand-chocolate/10 rounded" />
+          </div>
+          <div className="w-8 h-8 rounded-full bg-brand-chocolate/10" />
+        </div>
+
+        {/* Receipt Items Pulse */}
+        <div className="flex flex-col gap-3 p-4 bg-brand-cream/10 border border-brand-chocolate/5 rounded-md">
+          <div className="h-4 w-20 bg-brand-chocolate/10 rounded mb-1" />
+          {[1, 2].map(i => (
+            <div key={i} className="flex justify-between items-center py-2 border-b border-brand-chocolate/5">
+              <div className="flex flex-col gap-1.5">
+                <div className="h-4 w-40 bg-brand-chocolate/10 rounded" />
+                <div className="h-3 w-16 bg-brand-chocolate/10 rounded" />
+              </div>
+              <div className="h-4 w-12 bg-brand-chocolate/10 rounded" />
+            </div>
+          ))}
+          {/* Subtotal & Total Pulse */}
+          <div className="flex justify-between items-center mt-2">
+            <div className="h-4 w-16 bg-brand-chocolate/10 rounded" />
+            <div className="h-5 w-20 bg-brand-chocolate/10 rounded" />
+          </div>
+        </div>
+      </div>
+    )
+  }
   const [viewingCustomer, setViewingCustomer] = useState(false)
   const { customers } = useCustomers()
   

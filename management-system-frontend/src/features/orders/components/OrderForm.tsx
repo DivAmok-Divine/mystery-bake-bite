@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { CustomerForm } from '../../customers/components/CustomerForm'
-import { Calendar } from '@shared/ui/molecules/DateCalendar'
+import { DateTimeCalendar } from '@shared/ui/molecules/calender/DateTimeCalendar'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { useClickOutside } from '@backend/lib/hooks'
 import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
@@ -26,6 +26,7 @@ interface OrderFormProps {
   initialData?: Order
   isAddingNewCustomer: boolean
   setIsAddingNewCustomer: (val: boolean) => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 interface OrderItem {
@@ -39,7 +40,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   onSuccess, 
   initialData, 
   isAddingNewCustomer, 
-  setIsAddingNewCustomer 
+  setIsAddingNewCustomer,
+  onDirtyChange
 }) => {
   const { orders, addOrder, updateOrder } = useOrders()
   const { customers } = useCustomers()
@@ -234,6 +236,68 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     onSuccess()
   }
 
+  const hasChanges = useMemo(() => {
+    if (!initialData) return true
+
+    // 1. Compare Customer IDs
+    if (formData.customerId !== initialData.customerId.toString()) return true
+
+    // 2. Compare Notes null-safely
+    if ((formData.notes || '') !== (initialData.notes || '')) return true
+
+    // 3. Compare Deadlines timestamp-safely (handles string vs Date safely)
+    try {
+      const initialTime = new Date(initialData.deadline).getTime()
+      const currentTime = new Date(formData.deadline).getTime()
+      if (initialTime !== currentTime) return true
+    } catch (e) {
+      if (formData.deadline !== initialData.deadline.toISOString()) return true
+    }
+
+    // 4. Compare Items (parsed correctly to avoid formatting/ordering discrepancies)
+    if (!products.length) return false // Wait for products to load before determining changes
+    
+    const parsedInitialItems: { productId: number; quantity: number }[] = []
+    const parts = initialData.items.split(', ')
+    parts.forEach(p => {
+      const match = p.match(/(\d+)x (.+)/)
+      if (match) {
+        const qty = parseInt(match[1])
+        const name = match[2]
+        const prod = products.find(pr => pr.name === name)
+        if (prod) {
+          parsedInitialItems.push({ productId: prod.id!, quantity: qty })
+        }
+      }
+    })
+
+    const currentValidItems = selectedItems.filter(item => item.quantity > 0)
+    if (currentValidItems.length !== parsedInitialItems.length) return true
+
+    for (const item of currentValidItems) {
+      const initialMatch = parsedInitialItems.find(pi => pi.productId === item.productId)
+      if (!initialMatch || initialMatch.quantity !== item.quantity) return true
+    }
+
+    return false
+  }, [initialData, formData.customerId, formData.notes, formData.deadline, selectedItems, products])
+
+  const isDirty = useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.customerId !== '' ||
+      formData.notes.trim() !== '' ||
+      formData.deadline !== '' ||
+      selectedItems.some(item => item.quantity > 0)
+    )
+  }, [initialData, hasChanges, formData, selectedItems])
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!validate()) return
@@ -254,7 +318,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {/* Customer Search */}
       <div className="flex flex-col gap-2 relative border-brand-chocolate/10 border-b pb-4" ref={customerDropdownRef}>
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
@@ -279,7 +343,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               <div className="p-1">
                 {topBuyers.length > 0 ? (
                   <>
-                    <p className="text-[10px] font-bold text-brand-chocolate/30 px-3 py-2 tracking-widest">Top Buyers</p>
+                    <p className="text-[11px] font-bold text-brand-chocolate/50 px-3 py-2 tracking-widest">Top Buyers</p>
                     {topBuyers.map(tb => (
                       <button
                         key={tb.customer.id}
@@ -475,7 +539,14 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             }}
             className={`w-full px-3 h-14 text-xs font-medium flex items-center justify-between bg-brand-cream/10 border ${errors.deadline ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md focus:outline-none`}
           >
-            {formData.deadline ? format(new Date(formData.deadline), 'MMM d, yyyy') : 'Pick date'}
+            {formData.deadline ? (
+              <div className="flex flex-col items-start justify-center gap-0.5 h-full text-left">
+                <span className="text-sm font-bold text-brand-chocolate">{format(new Date(formData.deadline), 'MMM d, yyyy')}</span>
+                <span className="text-[10px] text-brand-chocolate/65 font-medium">{format(new Date(formData.deadline), 'hh:mm a')}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-brand-chocolate/40">Pick date & time</span>
+            )}
             <ChevronDown size={14} className="opacity-40" />
           </button>
         </div>
@@ -483,7 +554,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
       {/* Calendar */}
       {isCalendarOpen && (
-        <Calendar
+        <DateTimeCalendar
           title="Select Deadline"
           value={formData.deadline}
           onChange={(iso) => {
@@ -507,15 +578,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         />
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5 mt-4">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!initialData && 
-            formData.customerId === initialData.customerId.toString() &&
-            formData.deadline === initialData.deadline.toISOString() &&
-            formData.notes === initialData.notes &&
-            formData.items === initialData.items
-          }
+          disabled={!!initialData && !hasChanges}
           className="btn-primary w-full h-14 text-lg shadow-xl rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {initialData ? 'Update Order' : 'Create Order'}
@@ -533,6 +599,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         }
         confirmText={initialData ? 'Yes, Update' : 'Yes, Create'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )

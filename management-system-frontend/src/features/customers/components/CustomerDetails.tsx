@@ -5,10 +5,47 @@ import { getStatusTextClass } from '@shared/ui/atoms/StatusBadge'
 import { formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
 
 interface CustomerDetailsProps {
-  customer: Customer
+  customer?: Customer
+  isLoading?: boolean
 }
 
-export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customer }) => {
+export const CustomerDetails: React.FC<CustomerDetailsProps> = ({ customer, isLoading }) => {
+  if (isLoading || !customer) {
+    return (
+      <div className="flex flex-col gap-4 pb-6 animate-pulse">
+        <div className="flex flex-col items-center gap-1 pt-2">
+          {/* Avatar Pulse */}
+          <div className="w-20 h-20 rounded-md bg-brand-chocolate/10 flex items-center justify-center" />
+          {/* Name Pulse */}
+          <div className="h-7 w-48 bg-brand-chocolate/10 rounded-md mt-2" />
+          {/* Created Date Pulse */}
+          <div className="h-4 w-36 bg-brand-chocolate/10 rounded-md mt-1" />
+          {/* Status Pulse */}
+          <div className="h-4 w-16 bg-brand-chocolate/10 rounded-md mt-1" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {/* Phone block skeleton */}
+          <div className="p-4 rounded-md flex items-center gap-4 border border-brand-chocolate/5 bg-brand-cream/10">
+            <div className="w-10 h-10 rounded-md bg-brand-chocolate/10 shrink-0" />
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="h-3 w-20 bg-brand-chocolate/10 rounded" />
+              <div className="h-5 w-32 bg-brand-chocolate/10 rounded" />
+            </div>
+          </div>
+          {/* Email block skeleton */}
+          <div className="p-4 rounded-md flex items-center gap-4 border border-brand-chocolate/5 bg-brand-cream/10">
+            <div className="w-10 h-10 rounded-md bg-brand-chocolate/10 shrink-0" />
+            <div className="flex-1 flex flex-col gap-1">
+              <div className="h-3 w-24 bg-brand-chocolate/10 rounded" />
+              <div className="h-5 w-40 bg-brand-chocolate/10 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4 pb-6">
       <div className="flex flex-col items-center gap-1 pt-2">

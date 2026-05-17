@@ -5,7 +5,7 @@ import {
   endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, addDays, isWithinInterval
 } from 'date-fns'
-import { XCloseBtn } from '../atoms/XCloseBtn'
+import { XCloseBtn } from '../../atoms/XCloseBtn'
 import { MonthYearSelector, DAYS } from './MonthYearSelector'
 
 export interface DateRange {
@@ -89,7 +89,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           >
             {format(day, 'd')}
             {isTodayDate && (
-              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-chocolate" />
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-chocolate z-20" />
             )}
           </button>
         )

@@ -3,7 +3,14 @@ import { db, type PantryItem } from '@backend/lib/db'
 
 export const usePantry = () => {
   // raw is undefined while Dexie is initialising, [] when empty, items[] when loaded
-  const raw = useLiveQuery(() => db.pantry.orderBy('name').toArray())
+  const raw = useLiveQuery(async () => {
+    const data = await db.pantry.toArray()
+    return data.sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.createdAt).getTime()
+      const timeB = new Date(b.updatedAt || b.createdAt).getTime()
+      return timeB - timeA
+    })
+  })
   const pantryItems: PantryItem[] = raw ?? []
   const isLoading = raw === undefined
 
@@ -21,7 +28,7 @@ export const usePantry = () => {
       return await updateStock(existing.id, (existing.currentStock || 0) + (item.currentStock || 0), 'Restock')
     }
 
-    return await db.pantry.add(item)
+    return await db.pantry.add({ ...item, updatedAt: new Date() })
   }
 
 

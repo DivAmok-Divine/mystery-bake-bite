@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Plus, Wrench, Trash2, 
@@ -30,11 +31,13 @@ interface EquipmentListProps {
 export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
   const { equipment, isLoading, deleteEquipment } = useEquipment()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [activeCategories, setActiveCategories] = useState<string[]>(['All'])
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
   const [isAdding, setIsAdding] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null)
   const [viewingItem, setViewingItem] = useState<Equipment | null>(null)
@@ -50,10 +53,10 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
 
   const baseFilteredEquipment = useMemo(() => {
     return equipment.filter(e => {
-      return e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             e.category.toLowerCase().includes(searchQuery.toLowerCase())
+      return e.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+             e.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     })
-  }, [equipment, searchQuery])
+  }, [equipment, debouncedSearchQuery])
 
   const getCategoryCount = (category: string) => {
     const baseItemsForCategory = baseFilteredEquipment.filter(e => 
@@ -264,19 +267,22 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
         onClose={() => {
           setIsAdding(false)
           setSelectedItem(null)
+          setIsFormDirty(false)
         }} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedItem?.id}
         title={selectedItem ? 'Edit Equipment' : 'New Equipment'}
         subtitle={selectedItem ? 'Modify equipment details and status' : 'Add a new asset to your kitchen'}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         <EquipmentForm 
           onSuccess={() => {
             setIsAdding(false)
             setSelectedItem(null)
+            setIsFormDirty(false)
           }} 
           initialData={selectedItem || undefined}
+          onDirtyChange={setIsFormDirty}
         />
       </BottomSheet>
 

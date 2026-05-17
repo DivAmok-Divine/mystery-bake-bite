@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   Plus, Package, Pencil, Trash2, 
   Search, BarChart3,
@@ -27,6 +28,7 @@ export const PantryList: React.FC = () => {
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [activeCategories, setActiveCategories] = useState<string[]>(['All'])
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
   const [showFilters, setShowFilters] = useState(false)
@@ -39,9 +41,15 @@ export const PantryList: React.FC = () => {
   const [isRestockForm, setIsRestockForm] = useState(false)
   const [isNavigatingFromDetails, setIsNavigatingFromDetails] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const [summaryView, setSummaryView] = useState<'main' | 'details' | 'edit'>('main')
   const [selectedItem, setSelectedItem] = useState<PantryItem | null>(null)
+
+  const currentSelectedItem = useMemo(() => {
+    if (!selectedItem?.id) return selectedItem
+    return pantryItems.find(i => i.id === selectedItem.id) || selectedItem
+  }, [selectedItem, pantryItems])
 
   const [itemToDelete, setItemToDelete] = useState<number | null>(null)
 
@@ -52,10 +60,10 @@ export const PantryList: React.FC = () => {
   const baseFilteredItems = useMemo(() => {
     return (pantryItems || []).filter(item => {
       if (!item) return false
-      return (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-             (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+      return (item.name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+             (item.category || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     })
-  }, [pantryItems, searchQuery])
+  }, [pantryItems, debouncedSearchQuery])
 
   const filteredItems = useMemo(() => {
     return baseFilteredItems.filter(item => {
@@ -203,7 +211,11 @@ export const PantryList: React.FC = () => {
               />
 
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+                <div 
+                  onClick={() => { setSelectedItem(item); setIsViewingItem(true) }}
+                  className="flex items-center gap-3 min-w-0 cursor-pointer active:scale-[0.98] hover:opacity-80 transition-all"
+                  title="View Item Details"
+                >
                   <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
                     item.status === 'Low Stock' ? 'bg-amber-100 text-amber-600' :
                     item.status === 'Out of Stock' ? 'bg-rose-100 text-rose-600' :
@@ -284,11 +296,22 @@ export const PantryList: React.FC = () => {
       {/* Add Item */}
       <BottomSheet
         isOpen={isAddingItem}
-        onClose={() => setIsAddingItem(false)}
+        onClose={() => {
+          setIsAddingItem(false)
+          setIsFormDirty(false)
+        }}
         title="Add to Pantry"
         subtitle="Keep track of your bakery supplies"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <PantryForm onSuccess={() => setIsAddingItem(false)} />
+        <PantryForm 
+          onSuccess={() => {
+            setIsAddingItem(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       <BottomSheet
@@ -300,9 +323,9 @@ export const PantryList: React.FC = () => {
         title="Item details"
         subtitle="Stock levels, value and history"
       >
-        {selectedItem && (
+        {currentSelectedItem && (
           <PantryDetails 
-            item={selectedItem} 
+            item={currentSelectedItem} 
             onRestock={() => {
               setIsViewingItem(false)
               setIsRestockForm(true)
@@ -320,6 +343,7 @@ export const PantryList: React.FC = () => {
           setSelectedItem(null);
           setIsRestockForm(false);
           setIsNavigatingFromDetails(false);
+          setIsFormDirty(false);
         }}
         onBack={isNavigatingFromDetails ? () => {
           setIsEditingItem(false);
@@ -327,17 +351,18 @@ export const PantryList: React.FC = () => {
           setIsNavigatingFromDetails(false);
           setIsViewingItem(true);
         } : undefined}
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedItem?.id}
         title={isRestockForm ? "Restock Item" : "Edit Pantry Item"}
         subtitle={isRestockForm ? "Restock ingredient stock" : "Update ingredient stock and details"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        {selectedItem && (
+        {currentSelectedItem && (
           <PantryForm
             onSuccess={() => { 
               setIsEditingItem(false); 
               setIsRestockForm(false);
+              setIsFormDirty(false);
               if (isNavigatingFromDetails) {
                 setIsViewingItem(true);
                 setIsNavigatingFromDetails(false);
@@ -345,8 +370,9 @@ export const PantryList: React.FC = () => {
                 setSelectedItem(null);
               }
             }}
-            initialData={selectedItem}
+            initialData={currentSelectedItem}
             isRestock={isRestockForm}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -403,18 +429,18 @@ export const PantryList: React.FC = () => {
             />
           )}
 
-          {summaryView === 'details' && selectedItem && (
+          {summaryView === 'details' && currentSelectedItem && (
             <PantryDetails 
-              item={selectedItem} 
+              item={currentSelectedItem} 
               onRestock={() => setSummaryView('edit')}
             />
           )}
 
 
-          {summaryView === 'edit' && selectedItem && (
+          {summaryView === 'edit' && currentSelectedItem && (
             <PantryForm
               onSuccess={() => setSummaryView('details')}
-              initialData={selectedItem}
+              initialData={currentSelectedItem}
               isRestock={true}
             />
           )}

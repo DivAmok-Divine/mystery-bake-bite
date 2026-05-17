@@ -5,7 +5,7 @@ import {
   endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, addDays
 } from 'date-fns'
-import { XCloseBtn } from '../atoms/XCloseBtn'
+import { XCloseBtn } from '../../atoms/XCloseBtn'
 import { MonthYearSelector, DAYS } from './MonthYearSelector'
 
 interface CalendarProps {
@@ -64,19 +64,20 @@ export const Calendar: React.FC<CalendarProps> = ({
             type="button"
             onClick={() => handleSelectDay(currentDay)}
             className={`
-              h-12 w-full flex items-center justify-center text-sm rounded-md
-              transition-all relative
+              h-8 w-full flex items-center justify-center text-[10px]
+              rounded-md transition-all relative
               ${!isThisMonth ? 'opacity-20' : ''}
               ${isSelected
-                ? 'bg-brand-chocolate text-white font-bold shadow-lg scale-110 z-10'
+                ? 'bg-brand-dough text-brand-chocolate font-bold z-10'
                 : isTodayDate
-                    ? 'bg-brand-chocolate text-white font-bold'
-                    : 'hover:bg-brand-dough/30 text-brand-chocolate/80'}
+                  ? 'bg-brand-chocolate text-white font-bold'
+                  : 'text-brand-chocolate/80'}
+              hover:bg-brand-chocolate/5
             `}
           >
             {format(day, 'd')}
             {isTodayDate && (
-              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-chocolate" />
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-chocolate z-20" />
             )}
           </button>
         )
@@ -96,7 +97,7 @@ export const Calendar: React.FC<CalendarProps> = ({
 
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-6 pb-20">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
@@ -104,7 +105,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-sm bg-brand-surface rounded-md shadow-2xl p-6 animate-in zoom-in-95 fade-in duration-200">
+      <div className="relative w-full max-w-sm bg-brand-surface rounded-md shadow-2xl p-6 animate-in slide-in-from-bottom-12 fade-in duration-300">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -154,7 +155,7 @@ export const Calendar: React.FC<CalendarProps> = ({
         {/* Day Headers */}
         <div className="grid grid-cols-7 mb-2">
           {DAYS.map(d => (
-            <div key={d} className="text-sm font-bold text-center opacity-40">
+            <div key={d} className="text-[11px] font-bold text-center text-brand-chocolate/40">
               {d}
             </div>
           ))}

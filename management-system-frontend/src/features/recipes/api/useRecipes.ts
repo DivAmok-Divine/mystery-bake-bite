@@ -6,11 +6,18 @@ export const useRecipes = () => {
 
   const recipesQuery = useQuery({
     queryKey: ['recipes'],
-    queryFn: () => db.recipes.toArray(),
+    queryFn: async () => {
+      const data = await db.recipes.toArray()
+      return data.sort((a, b) => {
+        const timeA = new Date((a as any).updatedAt || a.createdAt).getTime()
+        const timeB = new Date((b as any).updatedAt || b.createdAt).getTime()
+        return timeB - timeA
+      })
+    },
   })
 
   const addRecipeMutation = useMutation({
-    mutationFn: (recipe: Recipe) => db.recipes.add(recipe),
+    mutationFn: (recipe: Recipe) => db.recipes.add({ ...recipe, updatedAt: new Date() } as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
     }
@@ -19,7 +26,7 @@ export const useRecipes = () => {
   const updateRecipeMutation = useMutation({
     mutationFn: (recipe: Recipe) => {
       if (!recipe.id) throw new Error('Recipe ID is required for update')
-      return db.recipes.update(recipe.id, recipe)
+      return db.recipes.update(recipe.id, { ...recipe, updatedAt: new Date() } as any)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
