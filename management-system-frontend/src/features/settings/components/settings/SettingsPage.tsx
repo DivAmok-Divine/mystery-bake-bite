@@ -21,6 +21,7 @@ interface SettingsSection {
 export const SettingsPage: React.FC = () => {
   const { user, isAdmin, login, logout } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
+  
   const { developerToolsSection, DeveloperToolsModal } = useDeveloperTools()
 
   if (showEquipment) {

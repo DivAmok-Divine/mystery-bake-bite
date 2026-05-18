@@ -4,7 +4,7 @@ import { Reorder } from 'framer-motion'
 import { Utensils, BookOpen, Clock, AlertCircle, Plus, X, Info, GripVertical } from 'lucide-react'
 import type { Recipe } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-import { generateId, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
+import { generateId, sanitizeInput } from '@shared/utils/commonUtils.ts'
 import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface RecipeFormProps {

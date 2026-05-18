@@ -7,15 +7,15 @@ import {
 } from 'lucide-react'
 import { DatePresetFilter, type DateRange } from '@shared/ui/molecules/calender/DatePresetFilter'
 import { DateRangePicker } from '@shared/ui/molecules/calender/DateRangePicker'
-import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
-import { calculateTotalRevenue, getPopularProducts } from '@shared/utils/front-end-calculations/orderAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { useTopBuyers } from '@shared/utils/topCustomerAnalytics'
+import { calculateTotalRevenue, getPopularProducts } from '@shared/utils/orderAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
 import { format } from 'date-fns'
 import { 
   filterOrdersByTimeframe, 
   filterCustomersByTimeframe, 
   calculateActivityPulse 
-} from '@shared/utils/front-end-calculations/reportingAnalytics'
+} from '@shared/utils/reportingAnalytics'
 import { ActivityPulseChart } from './ActivityPulseChart'
 
 export const ReportingDashboard: React.FC = () => {

@@ -5,19 +5,20 @@ import { useProducts } from '../../products/api/useProducts'
 import { 
   Calendar as CalendarIcon, User, 
   StickyNote, Search, Plus, 
-  Minus, ChevronDown, Wallet, ShoppingCart, Trash2
+  ChevronDown, Wallet, ShoppingCart, Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { CustomerForm } from '../../customers/components/CustomerForm'
 import { DateTimeCalendar } from '@shared/ui/molecules/calender/DateTimeCalendar'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { useClickOutside } from '@backend/lib/hooks'
-import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
-import { calculateOrderTotal } from '@shared/utils/front-end-calculations/orderAnalytics'
-import { formatCurrency, formatNumber } from '@shared/utils/front-end-calculations/formatters'
-import { generateId, clamp, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
+import { useTopBuyers } from '@shared/utils/topCustomerAnalytics'
+import { calculateOrderTotal, parseOrderItemsDescription } from '@shared/utils/orderAnalytics'
+import { formatCurrency, formatNumber } from '@shared/utils/formatters'
+import { generateId, clamp, sanitizeInput } from '@shared/utils/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { useNotification } from '@shared/ui/molecules/Notification'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
 
 
 import { db, type Order } from '@backend/lib/db'
@@ -31,7 +32,7 @@ interface OrderFormProps {
 }
 
 interface OrderItem {
-  productId: number
+  productId: string
   name: string
   quantity: number
   price: number
@@ -72,26 +73,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   // Try to parse initial items if editing
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>(() => {
     if (!initialData || !products.length) return []
-    // This is a basic parser for "1x Name, 2x Other"
-    const items: OrderItem[] = []
-    const parts = initialData.items.split(', ')
-    parts.forEach(p => {
-      const match = p.match(/(\d+)x (.+)/)
-      if (match) {
-        const qty = parseInt(match[1])
-        const name = match[2]
-        const prod = products.find(pr => pr.name === name)
-        if (prod) {
-          items.push({
-            productId: prod.id!,
-            name: prod.name,
-            quantity: qty,
-            price: prod.price
-          })
-        }
-      }
-    })
-    return items
+    return parseOrderItemsDescription(initialData.items, products)
   })
 
   const [formData, setFormData] = useState({
@@ -106,24 +88,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   // Update selectedItems when products load if editing
   useEffect(() => {
     if (initialData && products.length > 0 && selectedItems.length === 0) {
-      const items: OrderItem[] = []
-      const parts = initialData.items.split(', ')
-      parts.forEach(p => {
-        const match = p.match(/(\d+)x (.+)/)
-        if (match) {
-          const qty = parseInt(match[1])
-          const name = match[2]
-          const prod = products.find(pr => pr.name === name)
-          if (prod) {
-            items.push({
-              productId: prod.id!,
-              name: prod.name,
-              quantity: qty,
-              price: prod.price
-            })
-          }
-        }
-      })
+      const items = parseOrderItemsDescription(initialData.items, products)
       if (items.length > 0) setSelectedItems(items)
     }
   }, [products, initialData])
@@ -183,13 +148,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     if (errors.items) setErrors({ ...errors, items: '' })
   }
 
-  const handleUpdateQuantity = (productId: number, newQty: number) => {
+  const handleUpdateQuantity = (productId: string, newQty: number) => {
     setSelectedItems(selectedItems.map(item => 
       item.productId === productId ? { ...item, quantity: clamp(newQty, 0, 99) } : item
     ))
   }
 
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItem = (productId: string) => {
     setSelectedItems(selectedItems.filter(item => item.productId !== productId))
   }
 
@@ -202,7 +167,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       ...formData,
       customerName: sanitizeInput(formData.customerName),
       notes: sanitizeInput(formData.notes),
-      customerId: Number(formData.customerId),
+      customerId: formData.customerId,
       amount: parseFloat(formData.amount),
       deadline: new Date(formData.deadline)
     }
@@ -279,19 +244,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     // 4. Compare Items (parsed correctly to avoid formatting/ordering discrepancies)
     if (!products.length) return false // Wait for products to load before determining changes
     
-    const parsedInitialItems: { productId: number; quantity: number }[] = []
-    const parts = initialData.items.split(', ')
-    parts.forEach(p => {
-      const match = p.match(/(\d+)x (.+)/)
-      if (match) {
-        const qty = parseInt(match[1])
-        const name = match[2]
-        const prod = products.find(pr => pr.name === name)
-        if (prod) {
-          parsedInitialItems.push({ productId: prod.id!, quantity: qty })
-        }
-      }
-    })
+    const parsedInitialItems = parseOrderItemsDescription(initialData.items, products)
 
     const currentValidItems = selectedItems.filter(item => item.quantity > 0)
     if (currentValidItems.length !== parsedInitialItems.length) return true
@@ -497,30 +450,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   <span className="text-[10px] text-brand-chocolate/40">{formatCurrency(item.price)} / each</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-brand-surface border border-brand-chocolate/10 rounded-md p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
-                      disabled={item.quantity <= 0}
-                      className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors disabled:opacity-20"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <input 
-                      type="number" 
-                      value={item.quantity === 0 ? '' : item.quantity}
-                      onChange={(e) => handleUpdateQuantity(item.productId, parseInt(e.target.value) || 0)}
-                      className="w-8 text-center text-xs font-bold text-brand-chocolate bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="0"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
-                      className="w-6 h-6 flex items-center justify-center bg-brand-chocolate text-white rounded transition-transform active:scale-90"
-                    >
-                      <Plus size={12} />
-                    </button>
-                  </div>
+                  <QuantityStepper
+                    value={item.quantity}
+                    onChange={(qty) => handleUpdateQuantity(item.productId, qty)}
+                    size="sm"
+                    min={0}
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(item.productId)}
@@ -571,6 +506,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             )}
             <ChevronDown size={14} className="opacity-40" />
           </button>
+          {errors.deadline && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.deadline}</p>}
         </div>
       </div>
 

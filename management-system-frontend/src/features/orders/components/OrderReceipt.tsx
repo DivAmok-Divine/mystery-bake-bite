@@ -7,9 +7,9 @@ import {
 } from 'lucide-react'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import type { Order } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 import { useOrders } from '../api/useOrders'
-import { calculateCustomerOrdersCount } from '@shared/utils/front-end-calculations/customerGeneralAnalytics'
+import { calculateCustomerOrdersCount } from '@shared/utils/customerGeneralAnalytics'
 
 interface OrderReceiptProps {
   order: Order

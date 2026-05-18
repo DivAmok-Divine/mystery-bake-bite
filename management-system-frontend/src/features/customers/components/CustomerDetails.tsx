@@ -2,7 +2,7 @@ import React from 'react'
 import { User, Phone, Mail, Plus, Info } from 'lucide-react'
 import type { Customer } from '@backend/lib/db'
 import { getStatusTextClass } from '@shared/ui/atoms/StatusBadge'
-import { formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
+import { formatPhone } from '@shared/utils/commonUtils'
 
 interface CustomerDetailsProps {
   customer?: Customer

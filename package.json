@@ -10,6 +10,10 @@
   "scripts": {
     "build": "npm run build -w management-system-frontend",
     "dev:admin": "npm run dev -w management-system-frontend",
-    "dev:web": "npm run dev -w website-app-frontend"
+    "dev:web": "npm run dev -w website-app-frontend",
+    "db:sync": "node backend/scripts/sync-schema.js"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
   }
 }

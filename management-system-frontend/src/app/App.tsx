@@ -23,9 +23,7 @@ function App() {
       setCurrentFeature(newFeature)
     }
   }
-
-  console.log('🍩 Mystery Bake Bite App Initialized');
-
+  
   return (
     <>
       <SplashScreen onComplete={() => setIsSplashDone(true)} />

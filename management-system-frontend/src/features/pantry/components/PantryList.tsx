@@ -3,7 +3,7 @@ import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   Plus, Package, Pencil, Trash2, 
   Search, BarChart3,
-  Minus, ShoppingCart, Eye
+  ShoppingCart, Eye
 } from 'lucide-react'
 
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,7 +14,7 @@ import { PantryForm } from './PantryForm'
 import { PantryDetails } from './PantryDetails'
 import { PantrySummary } from './PantrySummary'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilter'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
@@ -22,11 +22,14 @@ import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { useNotification } from '@shared/ui/molecules/Notification'
 import type { PantryItem } from '@backend/lib/db'
-import { getAdjustedStock, calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
-import { toggleFilterValue } from '@shared/utils/front-end-calculations/commonUtils'
+import { calculateStockProgress } from '@shared/utils/pantryAnalytics'
+import { toggleFilterValue } from '@shared/utils/commonUtils'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
+import { useAuth } from '../../auth/api/AuthContext'
 
 export const PantryList: React.FC = () => {
   const { notify } = useNotification()
+  const { isAdmin } = useAuth()
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -53,7 +56,7 @@ export const PantryList: React.FC = () => {
     return pantryItems.find(i => i.id === selectedItem.id) || selectedItem
   }, [selectedItem, pantryItems])
 
-  const [itemToDelete, setItemToDelete] = useState<number | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const categories = ['All', 'Ingredients', 'Packaging', 'Cleaning', 'Toppings', 'Other']
   const statuses = ['All', 'In Stock', 'Low Stock', 'Out of Stock']
@@ -99,11 +102,6 @@ export const PantryList: React.FC = () => {
     return baseItemsForStatus.filter(item => (item.status || 'In Stock') === stat).length
   }
 
-  const handleAdjustStock = (e: React.MouseEvent, item: PantryItem, delta: number) => {
-    e.stopPropagation()
-    const newStock = getAdjustedStock(item.currentStock || 0, delta)
-    if (item.id) updateStock(item.id, newStock)
-  }
 
   const navigateItem = (direction: 'next' | 'prev', list: PantryItem[] = filteredItems) => {
     if (!selectedItem || list.length <= 1) return
@@ -130,12 +128,14 @@ export const PantryList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button
-              onClick={() => setIsAddingItem(true)}
-              className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddingItem(true)}
+                className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -232,14 +232,17 @@ export const PantryList: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1 bg-brand-surface border border-brand-chocolate/10 rounded-md p-0.5 shadow-sm">
-                    <button onClick={(e) => handleAdjustStock(e, item, -1)} className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors">
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-10 text-center text-xs font-bold text-brand-chocolate">{item.currentStock || 0}</span>
-                    <button onClick={(e) => handleAdjustStock(e, item, 1)} className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors">
-                      <Plus size={12} />
-                    </button>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <QuantityStepper
+                      value={item.currentStock || 0}
+                      onChange={(qty) => {
+                        if (item.id) updateStock(item.id, qty)
+                      }}
+                      size="sm"
+                      min={0}
+                      max={item.maxStock !== undefined ? item.maxStock : item.currentStock}
+                      disableIncrement={!isAdmin}
+                    />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <StatusBadge status={item.status || 'In Stock'} className="text-[10px] px-2 py-0.5" />
@@ -256,26 +259,30 @@ export const PantryList: React.FC = () => {
                   >
                     <Eye size={14} />
                   </button>
-                  <button
-                    onClick={() => { 
-                      setSelectedItem(item); 
-                      setIsRestockForm(false); 
-                      setIsEditingItem(true) 
-                    }}
-                    className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => item.id && setItemToDelete(item.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => { 
+                          setSelectedItem(item); 
+                          setIsRestockForm(false); 
+                          setIsEditingItem(true) 
+                        }}
+                        className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => item.id && setItemToDelete(item.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[10px] font-bold text-emerald-600 leading-none">{formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
-                  {item.status !== 'In Stock' && (
+                  {isAdmin && item.status !== 'In Stock' && (
                     <button 
                       onClick={() => {
                         setSelectedItem(item)
@@ -286,7 +293,6 @@ export const PantryList: React.FC = () => {
                     >
                       Restock
                     </button>
-
                   )}
                 </div>
               </div>

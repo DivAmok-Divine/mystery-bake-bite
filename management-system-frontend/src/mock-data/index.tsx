@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Database, Trash2, Loader2 } from 'lucide-react'
-import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-import { db } from '@backend/lib/db'
+import { Database, Trash2, Loader2, HardDrive } from 'lucide-react'
+import { ConfirmModal } from '../shared/ui/molecules/ConfirmModal'
+import { db, isCloudMode } from '../../../backend/lib/db'
+import { useNotification } from '../shared/ui/molecules/Notification'
 
 export * from './customers'
 export * from './products'
@@ -17,94 +18,106 @@ import { mockRecipes } from './recipes'
 import { mockEquipment } from './equipment'
 import { mockPantry } from './pantry'
 
-export const seedDatabase = async () => {
-  await db.transaction('rw', [
-    db.customers, 
-    db.products, 
-    db.productCategories, 
-    db.orders, 
-    db.recipes, 
-    db.equipment,
-    db.pantry
-  ], async () => {
-    await Promise.all([
-      db.customers.clear(),
-      db.productCategories.clear(),
-      db.products.clear(),
-      db.orders.clear(),
-      db.recipes.clear(),
-      db.equipment.clear(),
-      db.pantry.clear()
-    ])
-    
-    // Calculate and add customers with proper status
-    const customersWithStatus = mockCustomers.map(customer => {
-      // Find orders for this customer (mockCustomers name maps to order customerName in mockOrders)
-      const customerOrders = mockOrders.filter(o => o.customerName === customer.name)
-      if (customerOrders.length === 0) return { ...customer, status: 'Inactive' as const }
-      
-      const lastOrderDate = new Date(Math.max(...customerOrders.map(o => new Date(o.createdAt).getTime())))
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-      
-      return {
-        ...customer,
-        status: (lastOrderDate >= thirtyDaysAgo ? 'Active' : 'Inactive') as 'Active' | 'Inactive'
-      }
-    })
-
-    await db.customers.bulkAdd(customersWithStatus)
-    await db.productCategories.bulkAdd(mockCategories)
-    await db.products.bulkAdd(mockProducts)
-    await db.orders.bulkAdd(mockOrders)
-    await db.recipes.bulkAdd(mockRecipes)
-    await db.equipment.bulkAdd(mockEquipment)
-    await db.pantry.bulkAdd(mockPantry)
-  })
-}
-
+// CLEAR IS EXCLUSIVELY LOCAL DEXIE NOW (TO PROTECT REAL CLOUD DATA)
 export const clearDatabase = async () => {
-  await db.transaction('rw', [
-    db.customers, 
-    db.products, 
-    db.productCategories, 
-    db.orders, 
-    db.recipes, 
-    db.equipment,
-    db.pantry
-  ], async () => {
-    await Promise.all([
-      db.customers.clear(),
-      db.productCategories.clear(),
-      db.products.clear(),
-      db.orders.clear(),
-      db.recipes.clear(),
-      db.equipment.clear(),
-      db.pantry.clear()
-    ])
-  })
+  await Promise.all([
+    db.customers.clear(),
+    db.productCategories.clear(),
+    db.products.clear(),
+    db.orders.clear(),
+    db.recipes.clear(),
+    db.equipment.clear(),
+    db.pantry.clear(),
+    db.pantryHistory.clear()
+  ])
 }
 
+// SEED IS EXCLUSIVELY LOCAL DEXIE NOW (TO PROTECT REAL CLOUD DATA)
+export const seedDatabase = async () => {
+  await clearDatabase()
+
+  // 1. Seed categories
+  await db.productCategories.bulkAdd(mockCategories)
+
+  // 2. Calculate customer statuses based on mockOrders
+  const customersWithStatus = mockCustomers.map(customer => {
+    const customerOrders = mockOrders.filter(o => o.customerName === customer.name)
+    if (customerOrders.length === 0) return { ...customer, status: 'Inactive' as const }
+    
+    const lastOrderDate = new Date(Math.max(...customerOrders.map(o => new Date(o.createdAt).getTime())))
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    
+    return {
+      ...customer,
+      status: (lastOrderDate >= thirtyDaysAgo ? 'Active' : 'Inactive') as 'Active' | 'Inactive'
+    }
+  })
+  await db.customers.bulkAdd(customersWithStatus)
+
+  // 3. Seed other modules
+  await db.products.bulkAdd(mockProducts)
+  await db.orders.bulkAdd(mockOrders)
+  await db.recipes.bulkAdd(mockRecipes)
+  await db.equipment.bulkAdd(mockEquipment)
+  await db.pantry.bulkAdd(mockPantry)
+}
 
 export const useDeveloperTools = () => {
+  const { notify } = useNotification()
   const [showSeedConfirm, setShowSeedConfirm] = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [isSeeding, setIsSeeding] = useState(false)
   const [hasData, setHasData] = useState(false)
+  const [dbMode, setDbModeState] = useState<'local' | 'cloud'>(isCloudMode() ? 'cloud' : 'local')
 
   useEffect(() => {
     const checkData = async () => {
-      const count = await db.customers.count()
-      setHasData(count > 0)
+      try {
+        const count = await db.customers.count()
+        setHasData(count > 0)
+      } catch (err) {
+        console.error('Error checking local database status:', err)
+      }
     }
     checkData()
-  }, [])
+  }, [dbMode])
+
+  const toggleDbMode = () => {
+    const next = dbMode === 'local' ? 'cloud' : 'local'
+    localStorage.setItem('mbb_db_mode', next)
+    setDbModeState(next)
+    
+    notify({
+      type: next === 'cloud' ? 'info' : 'update',
+      title: 'Database Mode Switched',
+      message: next === 'cloud' 
+        ? 'Connected to ☁️ Supabase Cloud (Real Production Data)!'
+        : 'Switched to 💾 Dexie Local Mode (Sandbox Testing Mode)!'
+    })
+
+    // Brief premium delay for beautiful notification visibility before hot reload
+    setTimeout(() => {
+      window.location.reload()
+    }, 1500)
+  }
 
   const handleSeed = async () => {
     setIsSeeding(true)
     try {
       await seedDatabase()
+      notify({
+        type: 'add',
+        title: 'Database Seeded',
+        message: 'Successfully seeded local browser database with mock test data!'
+      })
       window.location.reload()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        title: 'Seeding Failed',
+        message: err.message || 'Check local storage connection!'
+      })
     } finally {
       setIsSeeding(false)
     }
@@ -114,23 +127,45 @@ export const useDeveloperTools = () => {
     setIsSeeding(true)
     try {
       await clearDatabase()
+      notify({
+        type: 'delete',
+        title: 'Local Data Cleared',
+        message: 'Successfully cleared all local browser database records!'
+      })
       window.location.reload()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        title: 'Clear Failed',
+        message: err.message || 'Check local storage connection!'
+      })
     } finally {
       setIsSeeding(false)
     }
   }
 
   const developerToolsSection = {
-    title: 'Developer Tools',
+    title: 'System & Database Tools',
     items: [
       { 
-        label: hasData ? 'Clear Mock Data' : 'Seed Mock Data', 
-        value: hasData ? 'Remove all records from database' : 'Fill with 50-200 records per module', 
-        icon: isSeeding ? Loader2 : (hasData ? Trash2 : Database), 
-        action: () => hasData ? setShowClearConfirm(true) : setShowSeedConfirm(true),
-        actionLabel: isSeeding ? 'Working...' : (hasData ? 'Clear Data' : 'Load Seed Data'),
+        label: 'Database Connection', 
+        value: dbMode === 'cloud' 
+          ? '☁️ Supabase Cloud (Real Production Data)' 
+          : '💾 Dexie Local Mode (Sandbox Testing Mode)', 
+        icon: dbMode === 'cloud' ? Database : HardDrive, 
+        action: toggleDbMode,
+        actionLabel: dbMode === 'cloud' ? 'Switch to Local' : 'Switch to Cloud',
         disabled: isSeeding
       },
+      // Show seed/clear actions ONLY when in Sandbox Local Mode to prevent any cloud mutation errors!
+      ...(dbMode === 'local' ? [{ 
+        label: hasData ? 'Clear Sandbox Data' : 'Seed Sandbox Data', 
+        value: hasData ? 'Clear browser Cache (IndexedDB)' : 'Pre-fill with 50-200 local test records', 
+        icon: isSeeding ? Loader2 : (hasData ? Trash2 : Database), 
+        action: () => hasData ? setShowClearConfirm(true) : setShowSeedConfirm(true),
+        actionLabel: isSeeding ? 'Working...' : (hasData ? 'Clear Sandbox' : 'Seed sandbox'),
+        disabled: isSeeding
+      }] : [])
     ]
   }
 
@@ -140,18 +175,18 @@ export const useDeveloperTools = () => {
         isOpen={showSeedConfirm}
         onClose={() => setShowSeedConfirm(false)}
         onConfirm={handleSeed}
-        title="Seed Mock Data?"
-        message="This will replace ALL your current data with 50-200 fresh records per module."
-        confirmText="Yes, Seed Data"
+        title="Seed Sandbox Test Data?"
+        message="This will fill your LOCAL browser storage with 50-200 offline test records for sandbox trial."
+        confirmText="Yes, Seed Sandbox"
         isDestructive={false}
       />
       <ConfirmModal
         isOpen={showClearConfirm}
         onClose={() => setShowClearConfirm(false)}
         onConfirm={handleClear}
-        title="Clear All Data?"
-        message="This will PERMANENTLY remove all records from your database. The app will be empty."
-        confirmText="Yes, Clear Everything"
+        title="Clear Sandbox Database?"
+        message="This will PERMANENTLY erase all mock/sandbox records from your local browser. Your cloud Supabase data remains completely unaffected."
+        confirmText="Yes, Clear Sandbox"
         isDestructive={true}
       />
     </>

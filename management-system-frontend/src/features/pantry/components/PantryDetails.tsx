@@ -6,9 +6,9 @@ import {
 } from 'lucide-react'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import type { PantryItem } from '@backend/lib/db'
-
-import { calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { calculateStockProgress } from '@shared/utils/pantryAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
+import { useAuth } from '../../auth/api/AuthContext'
 
 interface PantryDetailsProps {
   item?: PantryItem
@@ -17,6 +17,7 @@ interface PantryDetailsProps {
 }
 
 export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, onRestock }) => {
+  const { isAdmin } = useAuth()
   if (isLoading || !item) {
     return (
       <div className="flex flex-col gap-5 pb-8 animate-pulse">
@@ -105,7 +106,7 @@ export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, o
           <p className="text-[10px] text-brand-chocolate/30">
             Minimum threshold: {item.minStock ?? 0} {item.unit}
           </p>
-          {onRestock && (
+          {onRestock && isAdmin && (
             <button 
               onClick={onRestock}
               className="text-[10px] font-bold text-orange-600 underline"
@@ -127,15 +128,33 @@ export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, o
           <span className="text-[10px] text-brand-chocolate/40">{item.unit}</span>
         </div>
 
-        <div className="p-4 bg-emerald-50 rounded-md flex flex-col gap-1 border border-emerald-100">
-          <div className="flex items-center gap-1.5 text-emerald-600/60 mb-1">
+        <div className={`p-4 rounded-md flex flex-col gap-1 ${
+          item.status === 'Out of Stock' ? 'bg-rose-50 border border-rose-100' :
+          item.status === 'Low Stock'    ? 'bg-amber-50 border border-amber-100' :
+                                           'bg-emerald-50 border border-emerald-100'
+        }`}>
+          <div className={`flex items-center gap-1.5 mb-1 ${
+            item.status === 'Out of Stock' ? 'text-rose-600/60' :
+            item.status === 'Low Stock'    ? 'text-amber-600/70' :
+                                             'text-emerald-600/60'
+          }`}>
             <Wallet size={13} />
             <span className="text-[10px] font-bold">Stock value</span>
           </div>
-          <span className="text-2xl font-display text-emerald-700 leading-none">
+          <span className={`text-2xl font-display leading-none ${
+            item.status === 'Out of Stock' ? 'text-rose-700' :
+            item.status === 'Low Stock'    ? 'text-amber-800' :
+                                             'text-emerald-700'
+          }`}>
             {formatCurrency(totalValue)}
           </span>
-          <span className="text-[10px] text-emerald-600/50">@ {formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
+          <span className={`text-[10px] ${
+            item.status === 'Out of Stock' ? 'text-rose-600/50' :
+            item.status === 'Low Stock'    ? 'text-amber-700/60' :
+                                             'text-emerald-600/50'
+          }`}>
+            @ {formatCurrency(item.lastPrice || 0)} / {item.unit}
+          </span>
         </div>
       </div>
 

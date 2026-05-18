@@ -37,7 +37,7 @@ export const calculateMonthlyUsage = (history: PantryHistory[]): number => {
  */
 export const getPantryStockHealth = (items: PantryItem[]) => {
   return {
-    lowStock: items.filter(i => i.status === 'Low Stock' || i.status === 'Out of Stock'),
+    lowStock: items.filter(i => i.status === 'Low Stock'),
     outOfStock: items.filter(i => i.status === 'Out of Stock')
   }
 }
