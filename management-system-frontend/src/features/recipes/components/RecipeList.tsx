@@ -19,7 +19,7 @@ export const RecipeList: React.FC = () => {
   const [isAddingRecipe, setIsAddingRecipe] = useState(false)
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null)
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null)
-  const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
+  const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null)
   const [isFormDirty, setIsFormDirty] = useState(false)
   const { recipes, isLoading, deleteRecipe } = useRecipes()
 

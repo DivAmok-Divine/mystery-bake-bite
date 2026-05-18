@@ -68,7 +68,7 @@ export const mockOrders: Order[] = Array.from({ length: 80 }).map((_, i) => {
 
   return {
     orderNumber: `#MBB-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-    customerId: customerIndex + 1,
+    customerId: String(customerIndex + 1),
     customerName: customerNames[customerIndex],
     items: selectedProducts.join(', '),
     amount: totalAmount,

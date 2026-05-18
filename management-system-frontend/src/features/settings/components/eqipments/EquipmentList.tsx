@@ -43,7 +43,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
 
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null)
   const [viewingItem, setViewingItem] = useState<Equipment | null>(null)
-  const [itemToDelete, setItemToDelete] = useState<number | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const toggleCategory = (category: string) => {
     setActiveCategories(toggleFilterValue(activeCategories, category))
