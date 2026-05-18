@@ -25,7 +25,7 @@ export const CustomerList: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isEditingCustomer, setIsEditingCustomer] = useState(false)
   const [isViewingCustomer, setIsViewingCustomer] = useState(false)
-  const [customerToDelete, setCustomerToDelete] = useState<number | null>(null)
+  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)

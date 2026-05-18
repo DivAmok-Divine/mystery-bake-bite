@@ -79,7 +79,7 @@ export const calculateActivityPulse = (orders: Order[], timeView?: TimeView, dat
         tooltipLabel: `${format(now, 'MMMM d, yyyy')} @ ${label}`
       }
     })
-  } else if (dateRange.start && dateRange.end) {
+  } else if (dateRange && dateRange.start && dateRange.end) {
     const start = startOfDay(new Date(dateRange.start))
     const end = startOfDay(new Date(dateRange.end))
     const daysDiff = differenceInDays(end, start)
@@ -112,7 +112,7 @@ export const calculateActivityPulse = (orders: Order[], timeView?: TimeView, dat
         }
       })
     }
-  } else if (dateRange.start) {
+  } else if (dateRange && dateRange.start) {
     // Single day selected - show hourly breakdown for that specific day
     const hours = [8, 10, 12, 14, 16, 18, 20]
     const day = new Date(dateRange.start)

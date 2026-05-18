@@ -96,7 +96,7 @@ export const usePantry = () => {
             Math.abs(new Date(r1.createdAt).getTime() - new Date(r2.createdAt).getTime()) < 10000 // created within 10 seconds of each other
           ) {
             // Found a duplicate! Keep r1 and delete r2
-            if (!toDeleteIds.includes(r2.id)) {
+            if (r2.id && !toDeleteIds.includes(r2.id)) {
               toDeleteIds.push(r2.id)
             }
           }
@@ -123,7 +123,7 @@ export const usePantry = () => {
         if (!item.id) continue
         
         // Find if this item has any Restock history entries left after deduplication
-        const itemHistory = pantryHistory.filter(h => h.itemId === item.id && !toDeleteIds.includes(h.id))
+        const itemHistory = pantryHistory.filter(h => h.itemId === item.id && h.id && !toDeleteIds.includes(h.id))
         const hasRestock = itemHistory.some(h => h.type === 'Restock')
 
         if (!hasRestock) {
