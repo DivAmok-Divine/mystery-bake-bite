@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useCustomers } from '../api/useCustomers.ts'
 import { User, Phone, Mail, MapPin, AlertCircle } from 'lucide-react'
 import type { Customer } from '@backend/lib/db'
-import { isValidGhanaPhone, formatPhone, sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
+import { isValidGhanaPhone, formatPhone, sanitizeInput } from '@shared/utils/commonUtils.ts'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { useNotification } from '@shared/ui/molecules/Notification'
 

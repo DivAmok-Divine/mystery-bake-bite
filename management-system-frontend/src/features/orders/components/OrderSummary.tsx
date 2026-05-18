@@ -4,22 +4,22 @@ import type { Order, Customer, Product } from '@backend/lib/db'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { useProducts } from '../../products/api/useProducts'
 
-import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
+import { useTopBuyers } from '@shared/utils/topCustomerAnalytics'
 import { 
   calculateTotalRevenue, 
   calculateStatusCounts, 
   getPopularProducts,
   calculateAverageOrderValue,
   calculateCompletionRate
-} from '@shared/utils/front-end-calculations/orderAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+} from '@shared/utils/orderAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
 import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
 import { CustomerDetails } from '../../customers/components/CustomerDetails'
 import { ProductDetails } from '../../products/components/ProductDetails'
 import { 
   getCustomerStatusCounts,
   getCustomersInPeriod 
-} from '@shared/utils/front-end-calculations/customerGeneralAnalytics'
+} from '@shared/utils/customerGeneralAnalytics'
 
 interface OrderSummaryProps {
   orders: Order[]

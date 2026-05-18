@@ -57,3 +57,42 @@ export const calculateCompletionRate = (orders: Order[]): number => {
 export const calculateOrderTotal = (items: { price: number, quantity: number }[]): number => {
   return items.reduce((acc, item) => acc + (item.price * item.quantity), 0)
 }
+
+export interface ParsedOrderItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+/**
+ * Parses order items description string (e.g., "2x Croissant, 1x Bagel") 
+ * back into a structured array of OrderItems using active product lists.
+ */
+export const parseOrderItemsDescription = (
+  itemsStr: string,
+  products: { id?: string; name: string; price: number }[]
+): ParsedOrderItem[] => {
+  if (!itemsStr || !products.length) return []
+  const parsedItems: ParsedOrderItem[] = []
+  const parts = itemsStr.split(', ')
+
+  parts.forEach(p => {
+    const match = p.match(/(\d+)x (.+)/)
+    if (match) {
+      const qty = parseInt(match[1], 10)
+      const name = match[2]
+      const prod = products.find(pr => pr.name === name)
+      if (prod) {
+        parsedItems.push({
+          productId: prod.id!,
+          name: prod.name,
+          quantity: qty,
+          price: prod.price
+        })
+      }
+    }
+  })
+
+  return parsedItems
+}

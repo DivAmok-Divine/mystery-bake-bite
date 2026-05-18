@@ -12,7 +12,7 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { CustomerSummary } from './CustomerSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
-import { toggleFilterValue, formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
+import { toggleFilterValue, formatPhone } from '@shared/utils/commonUtils'
 import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Customer } from '@backend/lib/db'
 

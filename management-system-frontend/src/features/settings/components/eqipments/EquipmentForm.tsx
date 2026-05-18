@@ -3,16 +3,17 @@ import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Wrench, Tag, Activity, Calendar as CalendarIcon, 
   Wallet, Hash, StickyNote, AlertCircle,
-  ChevronDown, Minus, Plus
+  ChevronDown
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { Calendar } from '@shared/ui/molecules/calender/DateCalendar'
 import { useClickOutside } from '@backend/lib/hooks'
-import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
+import { formatNumber } from '@shared/utils/formatters'
 import type { Equipment } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { useNotification } from '@shared/ui/molecules/Notification'
-import { sanitizeInput } from '@shared/utils/front-end-calculations/commonUtils'
+import { sanitizeInput } from '@shared/utils/commonUtils'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
 
 
 interface EquipmentFormProps {
@@ -59,7 +60,11 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
     if (!formData.category.trim()) newErrors.category = 'Category is required'
     if (!formData.status) newErrors.status = 'Status is required'
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Purchase date is required'
-    if (isNaN(parseFloat(formData.price))) newErrors.price = 'Valid price is required'
+    
+    const parsedPrice = parseFloat(formData.price)
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      newErrors.price = 'Price is required'
+    }
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -317,52 +322,23 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
             <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
               <Wallet size={14} /> Price (GH₵)
             </label>
-            <div className="flex items-center gap-1 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md p-1 h-14">
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseFloat(formData.price) || 0
-                  if (current > 0) setFormData({ ...formData, price: formatNumber(current - 1) })
-                }}
-                className="w-8 h-full bg-brand-chocolate/5 text-brand-chocolate rounded flex items-center justify-center active:bg-brand-chocolate/10"
-              >
-                <Minus size={16} />
-              </button>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                className={`w-full bg-transparent text-center font-bold text-sm focus:outline-none ${errors.price ? 'text-red-500' : 'text-brand-chocolate'}`}
-                value={formData.price}
-                onChange={(e) => {
-                  setFormData({ ...formData, price: e.target.value })
-                  if (errors.price) setErrors({ ...errors, price: '' })
-                }}
-                onFocus={(e) => {
-                  if (e.target.value === '0.00' || e.target.value === '0') {
-                    setFormData({ ...formData, price: '' })
-                  }
-                }}
-                onBlur={(e) => {
-                  if (e.target.value === '') {
-                    setFormData({ ...formData, price: '0.00' })
-                  } else if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                    // Optional: auto-format to 2 decimal places on blur if it's a valid number
-                    setFormData({ ...formData, price: formatNumber(parseFloat(e.target.value) || 0) })
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseFloat(formData.price) || 0
-                  setFormData({ ...formData, price: formatNumber(current + 1) })
-                }}
-                className="w-8 h-full bg-brand-chocolate text-white rounded flex items-center justify-center active:scale-95"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
+            <QuantityStepper
+              value={parseFloat(formData.price) || 0}
+              onChange={(price) => {
+                setFormData({ ...formData, price: formatNumber(price) })
+                if (errors.price && price > 0) setErrors(prev => ({ ...prev, price: '' }))
+              }}
+              min={0}
+              step={1}
+              isDecimal={true}
+              placeholder="0.00"
+              className={`w-full h-14 bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
+            />
+            {errors.price && (
+              <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                <AlertCircle size={10} /> {errors.price}
+              </p>
+            )}
           </div>
 
           {/* Serial Number */}

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Package, FileText } from 'lucide-react'
 import type { Product } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface ProductDetailsProps {
   product?: Product

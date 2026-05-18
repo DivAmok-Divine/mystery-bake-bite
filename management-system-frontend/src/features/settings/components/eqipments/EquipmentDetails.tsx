@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import type { Equipment } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface EquipmentDetailsProps {
   equipment?: Equipment

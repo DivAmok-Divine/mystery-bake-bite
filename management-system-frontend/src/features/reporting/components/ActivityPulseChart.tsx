@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { getSVGCoordinates } from '@shared/utils/front-end-calculations/reportingAnalytics'
+import { getSVGCoordinates } from '@shared/utils/reportingAnalytics'
 
 interface ActivityPulseChartProps {
   pulsePoints: { label: string; count: number; tooltipLabel?: string }[]
