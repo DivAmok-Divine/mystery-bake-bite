@@ -54,6 +54,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false)
   const [productSearch, setProductSearch] = useState('')
+  const [isSearchProductFocused, setIsSearchProductFocused] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -400,13 +401,19 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {isProductDropdownOpen && (
           <div className="bg-brand-dough/5 border border-brand-chocolate/10 rounded-md p-2 flex flex-col gap-2 animate-in slide-in-from-top-2">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-chocolate" size={14} />
+              <Search 
+                className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 pointer-events-none ${isSearchProductFocused || productSearch ? 'text-brand-chocolate' : 'text-brand-chocolate/40'}`} 
+                size={14} 
+                strokeWidth={isSearchProductFocused || productSearch ? 2.5 : 2}
+              />
               <input
                 type="text"
                 placeholder="search product..."
                 className="w-full pl-10 pr-4 py-2.5 bg-brand-surface border border-brand-chocolate/10 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-dough shadow-sm"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
+                onFocus={() => setIsSearchProductFocused(true)}
+                onBlur={() => setIsSearchProductFocused(false)}
               />
             </div>
 

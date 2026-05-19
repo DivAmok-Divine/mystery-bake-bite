@@ -401,6 +401,57 @@ CREATE POLICY "Allow public read product-images" ON storage.objects FOR SELECT U
 CREATE POLICY "Allow public write product-images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'product-images');
 CREATE POLICY "Allow public update product-images" ON storage.objects FOR UPDATE USING (bucket_id = 'product-images') WITH CHECK (bucket_id = 'product-images');
 CREATE POLICY "Allow public delete product-images" ON storage.objects FOR DELETE USING (bucket_id = 'product-images');
+
+-- 15. CREATE ROLES AND USERS TABLES (For cloud synchronization fallback)
+CREATE TABLE IF NOT EXISTS roles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL,
+    permissions TEXT[] NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    role_id TEXT REFERENCES roles(id) ON DELETE SET NULL,
+    password TEXT NOT NULL,
+    assigned_permissions TEXT[],
+    revoked_permissions TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS for roles & users
+ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Allow public access
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Allow public read roles" ON roles;
+    DROP POLICY IF EXISTS "Allow public write roles" ON roles;
+    DROP POLICY IF EXISTS "Allow public read users" ON users;
+    DROP POLICY IF EXISTS "Allow public write users" ON users;
+EXCEPTION
+    WHEN undefined_object THEN null;
+END $$;
+
+CREATE POLICY "Allow public read roles" ON roles FOR SELECT USING (true);
+CREATE POLICY "Allow public write roles" ON roles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read users" ON users FOR SELECT USING (true);
+CREATE POLICY "Allow public write users" ON users FOR ALL USING (true) WITH CHECK (true);
+
+-- Seed Roles
+INSERT INTO roles (id, name, color, permissions)
+VALUES 
+('e8e81561-12f8-456b-a25e-ea78a48ef89a', 'Admin', '#3d2314', ARRAY['*'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed Users
+INSERT INTO users (id, name, role_id, password)
+VALUES 
+('a1c84b4a-f326-444a-a38f-a9cb6b6c085f', 'DivAmok', 'e8e81561-12f8-456b-a25e-ea78a48ef89a', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8')
+ON CONFLICT (name) DO UPDATE SET id = EXCLUDED.id, role_id = EXCLUDED.role_id, password = EXCLUDED.password;
 `;
 
   connectedClient.query(sqlSchema)

@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../../auth/api/AuthContext.tsx'
-import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench } from 'lucide-react'
+import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench, Key } from 'lucide-react'
 import { useDeveloperTools } from '../../../../mock-data/index.tsx'
 import { EquipmentList } from '../eqipments/EquipmentList.tsx'
+import { RolePermissionManager } from './RolePermissionManager.tsx'
 
 interface SettingsItem {
   label: string
@@ -19,8 +20,9 @@ interface SettingsSection {
 }
 
 export const SettingsPage: React.FC = () => {
-  const { user, isAdmin, login, logout } = useAuth()
+  const { user, roles, logout, hasPermission } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
+  const [showManager, setShowManager] = useState(false)
   
   const { developerToolsSection, DeveloperToolsModal } = useDeveloperTools()
 
@@ -28,27 +30,53 @@ export const SettingsPage: React.FC = () => {
     return <EquipmentList onBack={() => setShowEquipment(false)} />
   }
 
+  if (showManager) {
+    return <RolePermissionManager onBack={() => setShowManager(false)} />
+  }
+
+  const userRole = roles.find(r => r.id === user?.roleId)
+  const roleName = userRole?.name || 'Staff Member'
+
+  const accountItems: SettingsItem[] = [
+    { label: 'Name', value: user?.name, icon: User },
+    { 
+      label: 'User Role', 
+      value: roleName, 
+      icon: Shield
+    },
+    { 
+      label: 'Equipments', 
+      value: 'Manage ovens, mixers & more', 
+      icon: Wrench,
+      action: () => setShowEquipment(true),
+      actionLabel: 'Open'
+    },
+    { label: 'Slogan', value: 'Unveiling the uniqueness of a recipe', icon: ChevronRight },
+  ]
+
   const sections: SettingsSection[] = [
     {
       title: 'Account',
+      items: accountItems
+    }
+  ]
+
+  if (hasPermission('manage:users')) {
+    sections.push({
+      title: 'Administration',
       items: [
-        { 
-          label: 'User Role', 
-          value: isAdmin ? 'Owner (Admin)' : 'Staff Member', 
-          icon: Shield, 
-          action: () => login(isAdmin ? 'staff' : 'admin'),
-          actionLabel: isAdmin ? 'Switch to Staff' : 'Switch to Admin'
-        },
-        { label: 'Name', value: user?.name, icon: User },
-        { 
-          label: 'Equipments', 
-          value: 'Manage ovens, mixers & more', 
-          icon: Wrench,
-          action: () => setShowEquipment(true)
-        },
-        { label: 'Slogan', value: 'Unveiling the uniqueness of a recipe', icon: ChevronRight },
+        {
+          label: 'Access Control',
+          value: 'Manage custom roles and direct overrides',
+          icon: Key,
+          action: () => setShowManager(true),
+          actionLabel: 'Manage'
+        }
       ]
-    },
+    })
+  }
+
+  sections.push(
     {
       title: 'Preferences',
       items: [
@@ -62,7 +90,7 @@ export const SettingsPage: React.FC = () => {
         { label: 'App Version', value: 'v1.0.0', icon: Info },
       ]
     }
-  ]
+  )
 
 
   return (
@@ -75,41 +103,111 @@ export const SettingsPage: React.FC = () => {
       <div className="flex flex-col gap-4">
         {sections.map((section, i) => (
           <div key={i} className="flex flex-col gap-3">
-            <h3 className="text-sm font-bold  text-brand-chocolate/50 px-1">
+            <h3 className="text-sm font-bold text-brand-chocolate/50 px-1">
               {section.title}
             </h3>
-            <div className="flex flex-col gap-2">
-              {section.items.map((item, j) => (
-                <div 
-                  key={j} 
-                  onClick={(!item.disabled && item.action) ? item.action : undefined}
-                  className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-md bg-brand-chocolate/5 flex items-center justify-center text-brand-chocolate">
-                      <item.icon size={18} className={item.disabled ? 'animate-spin' : ''} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{item.label}</p>
-                      <p className="text-xs text-brand-chocolate/40">{item.value}</p>
-                    </div>
-                  </div>
-                  {/* Dynamic Action Button: Triggers the specific logic for this setting (e.g., Switch Role, Open Equipment, Seed Data) */}
-                  {item.action && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!item.disabled && item.action) item.action();
-                      }}
-                      disabled={item.disabled}
-                      className={`text-[10px] font-bold text-brand-chocolate bg-brand-dough px-3 py-1.5 rounded-md transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dough/80'}`}
+
+            {section.title === 'Account' ? (
+              <div className="flex flex-col gap-2">
+                {/* Top Row: User Role (50%) and Name (50%) as separate cards side by side */}
+                <div className="grid grid-cols-2 gap-2">
+                  {section.items.slice(0, 2).map((item, j) => (
+                    <div 
+                      key={j} 
+                      onClick={(!item.disabled && item.action) ? item.action : undefined}
+                      className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
                     >
-                      {item.actionLabel || 'Change'}
-                    </button>
-                  )}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-md bg-brand-chocolate/5 flex items-center justify-center text-brand-chocolate shrink-0">
+                          <item.icon size={18} className={item.disabled ? 'animate-spin' : ''} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate leading-tight">{item.label}</p>
+                          <p className="text-xs text-brand-chocolate/40 truncate mt-0.5">{item.value}</p>
+                        </div>
+                      </div>
+                      {item.action && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!item.disabled && item.action) item.action();
+                          }}
+                          disabled={item.disabled}
+                          className={`text-[10px] font-bold text-brand-chocolate bg-brand-dough px-3 py-1.5 rounded-md transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dough/80'}`}
+                        >
+                          {item.actionLabel || 'Change'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+
+                {/* Remaining items (Equipments, Slogan) as full width cards below */}
+                <div className="flex flex-col gap-2">
+                  {section.items.slice(2).map((item, j) => (
+                    <div 
+                      key={j + 2} 
+                      onClick={(!item.disabled && item.action) ? item.action : undefined}
+                      className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-md bg-brand-chocolate/5 flex items-center justify-center text-brand-chocolate shrink-0">
+                          <item.icon size={18} className={item.disabled ? 'animate-spin' : ''} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate leading-tight">{item.label}</p>
+                          <p className="text-xs text-brand-chocolate/40 truncate mt-0.5">{item.value}</p>
+                        </div>
+                      </div>
+                      {item.action && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!item.disabled && item.action) item.action();
+                          }}
+                          disabled={item.disabled}
+                          className={`text-[10px] font-bold text-brand-chocolate bg-brand-dough px-3 py-1.5 rounded-md transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dough/80'}`}
+                        >
+                          {item.actionLabel || 'Change'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {section.items.map((item, j) => (
+                  <div 
+                    key={j} 
+                    onClick={(!item.disabled && item.action) ? item.action : undefined}
+                    className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-md bg-brand-chocolate/5 flex items-center justify-center text-brand-chocolate shrink-0">
+                        <item.icon size={18} className={item.disabled ? 'animate-spin' : ''} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate leading-tight">{item.label}</p>
+                        <p className="text-xs text-brand-chocolate/40 truncate mt-0.5">{item.value}</p>
+                      </div>
+                    </div>
+                    {item.action && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!item.disabled && item.action) item.action();
+                        }}
+                        disabled={item.disabled}
+                        className={`text-[10px] font-bold text-brand-chocolate bg-brand-dough px-3 py-1.5 rounded-md transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dough/80'}`}
+                      >
+                        {item.actionLabel || 'Change'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
