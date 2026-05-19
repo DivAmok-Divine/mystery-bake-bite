@@ -339,9 +339,15 @@ export const OrderList: React.FC = () => {
         />
       ) : filteredOrders.length === 0 ? (
         <EmptyState
-          icon={Search}
-          title="No results found"
-          description={`We couldn't find anything matching "${searchQuery}"`}
+          icon={searchQuery ? Search : ShoppingBag}
+          title={searchQuery ? "No results found" : "No orders found"}
+          description={
+            searchQuery 
+              ? `We couldn't find anything matching "${searchQuery}"` 
+              : "No orders match the selected filters or date range."
+          }
+          actionLabel={!searchQuery ? "+ Add an order" : undefined}
+          onAction={!searchQuery ? () => setIsAddingOrder(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">

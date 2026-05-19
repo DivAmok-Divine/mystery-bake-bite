@@ -151,9 +151,15 @@ export const CustomerList: React.FC = () => {
         />
       ) : filteredCustomers.length === 0 ? (
         <EmptyState
-          icon={Search}
-          title="No results found"
-          description={`We couldn't find any customers matching "${searchQuery}"`}
+          icon={searchQuery ? Search : User}
+          title={searchQuery ? "No results found" : "No customers found"}
+          description={
+            searchQuery 
+              ? `We couldn't find any customers matching "${searchQuery}"` 
+              : "No customers match the selected status filters."
+          }
+          actionLabel={!searchQuery ? "+ Add customer" : undefined}
+          onAction={!searchQuery ? () => setIsAddingCustomer(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">
