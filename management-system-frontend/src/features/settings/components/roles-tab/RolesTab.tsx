@@ -151,24 +151,26 @@ export const RolesTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-between items-center px-1">
-        <h1 className="text-3xl font-display">Roles</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenNewRole}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+        <div className="flex justify-between items-center px-1">
+          <h1 className="text-3xl font-display">Roles</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenNewRole}
+              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="px-1">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search roles..."
-        />
+        <div className="px-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search roles..."
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">

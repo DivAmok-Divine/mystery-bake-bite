@@ -251,24 +251,26 @@ export const UsersTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-between items-center px-1">
-        <h1 className="text-3xl font-display">Users</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenNewUser}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+        <div className="flex justify-between items-center px-1">
+          <h1 className="text-3xl font-display">Users</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenNewUser}
+              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="px-1">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search staff accounts..."
-        />
+        <div className="px-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search staff accounts..."
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -287,7 +289,7 @@ export const UsersTab: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow font-display text-lg"
+                      className="w-10 h-10 rounded-md flex items-center justify-center text-white shadow font-display text-lg leading-none pt-[2px]"
                       style={{ backgroundColor: userRole?.color || '#3d2314' }}
                     >
                       {userObj.name[0]}
