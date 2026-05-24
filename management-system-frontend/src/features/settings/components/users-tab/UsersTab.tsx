@@ -350,7 +350,7 @@ export const UsersTab: React.FC = () => {
                   {!isOwnAccount ? (
                     <button
                       onClick={() => handleOpenOverrides(userObj.id)}
-                      className="text-[10px] font-bold text-brand-chocolate bg-brand-chocolate/5 hover:bg-brand-dough px-3 py-1.5 rounded-lg border border-brand-chocolate/10 transition-colors flex items-center gap-1"
+                      className="text-[10px] font-bold text-brand-chocolate bg-brand-chocolate/5 hover:bg-brand-dough px-3 py-1.5 rounded-md border border-brand-chocolate/10 transition-colors flex items-center gap-1"
                     >
                       <Key size={10} /> Overrides...
                     </button>
@@ -442,7 +442,7 @@ export const UsersTab: React.FC = () => {
                   setUserRoleId(val)
                   if (errors.roleId) setErrors(prev => ({ ...prev, roleId: '' }))
                 }}
-                options={roles.map(r => ({ value: r.id, label: r.name }))}
+                options={roles.filter(r => isSuperAdmin || r.id !== ADMIN_ROLE_ID).map(r => ({ value: r.id, label: r.name }))}
                 placeholder="Select a role"
               />
             </div>
