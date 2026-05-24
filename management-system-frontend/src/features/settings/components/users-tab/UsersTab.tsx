@@ -10,6 +10,8 @@ import { useNotification } from '@shared/ui/molecules/Notification'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { DropDown } from '@shared/ui/molecules/DropDown'
 import { SYSTEM_PERMISSIONS } from '@backend/seed/permissions'
+import { SearchBar } from '@shared/ui/molecules/SearchBar'
+import { useDebounce } from '@shared/hooks/useDebounce'
 
 export const UsersTab: React.FC = () => {
   const {
@@ -18,7 +20,8 @@ export const UsersTab: React.FC = () => {
     users,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    hasPermission
   } = useAuth()
   const { notify } = useNotification()
 
@@ -35,6 +38,7 @@ export const UsersTab: React.FC = () => {
   const [userPhone, setUserPhone] = useState('')
   const [userRoleId, setUserRoleId] = useState('')
   const [userPassword, setUserPassword] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // User Overrides States
   const [overrideAssigned, setOverrideAssigned] = useState<string[]>([])
@@ -43,9 +47,23 @@ export const UsersTab: React.FC = () => {
   // Delete states
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
+  // Confirm states
+  const [showConfirmSaveUser, setShowConfirmSaveUser] = useState(false)
+  const [showConfirmSaveOverrides, setShowConfirmSaveOverrides] = useState(false)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
+
   // Security checks:
   const isSuperAdmin = currentUser?.roleId === ADMIN_ROLE_ID
   const visibleUsers = users.filter(u => isSuperAdmin || u.id !== ADMIN_USER_ID)
+
+  const filteredUsers = visibleUsers.filter(u =>
+    u.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+    (u.username && u.username.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+    (u.email && u.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) ||
+    (u.phone && u.phone.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
+  )
 
   // --- USER CRUD ACTIONS ---
   const handleOpenNewUser = () => {
@@ -56,6 +74,7 @@ export const UsersTab: React.FC = () => {
     setUserPhone('')
     setUserRoleId('')
     setUserPassword('')
+    setErrors({})
     setUserSheetOpen(true)
   }
 
@@ -72,33 +91,35 @@ export const UsersTab: React.FC = () => {
     setUserEmail(user.email || '')
     setUserPhone(user.phone || '')
     setUserRoleId(user.roleId)
-    setUserPassword(user.password || '')
+    setUserPassword('')
+    setErrors({})
     setUserSheetOpen(true)
   }
 
-  const handleSaveUser = async (e: React.FormEvent) => {
+  const handleSaveUserClick = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!userName.trim()) {
-      notify({ type: 'error', message: 'Please enter a name.' })
-      return
-    }
-    if (!userUsername.trim()) {
-      notify({ type: 'error', message: 'Please enter a username.' })
-      return
-    }
+    const newErrors: Record<string, string> = {}
+    
+    if (!userName.trim()) newErrors.name = 'Full name is required'
+    if (!userUsername.trim()) newErrors.username = 'Username is required'
     if (!userEmail.trim()) {
-      notify({ type: 'error', message: 'Please enter an email address.' })
+      newErrors.email = 'Email address is required'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
+      newErrors.email = 'Please enter a valid email address'
+    }
+    if (!userRoleId) newErrors.roleId = 'Please select a role'
+    if (!editingUserId && !userPassword.trim()) newErrors.password = 'Password is required'
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
       return
     }
-    if (!userRoleId) {
-      notify({ type: 'error', message: 'Please select a role.' })
-      return
-    }
-    if (!userPassword.trim()) {
-      notify({ type: 'error', message: 'Please enter a password.' })
-      return
-    }
+    
+    setErrors({})
+    setShowConfirmSaveUser(true)
+  }
 
+  const executeSaveUser = async () => {
     try {
       if (editingUserId) {
         const userObj = users.find(u => u.id === editingUserId)
@@ -109,7 +130,7 @@ export const UsersTab: React.FC = () => {
           userEmail,
           userPhone,
           userRoleId,
-          userPassword,
+          userPassword.trim() || userObj?.password || '',
           userObj?.assignedPermissions,
           userObj?.revokedPermissions
         )
@@ -121,6 +142,8 @@ export const UsersTab: React.FC = () => {
       setUserSheetOpen(false)
     } catch (err) {
       notify({ type: 'error', message: 'Failed to save user.' })
+    } finally {
+      setShowConfirmSaveUser(false)
     }
   }
 
@@ -174,7 +197,13 @@ export const UsersTab: React.FC = () => {
     }
   }
 
-  const handleSaveOverrides = async () => {
+  const handleSaveOverridesClick = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!overrideUserId) return
+    setShowConfirmSaveOverrides(true)
+  }
+
+  const executeSaveOverrides = async () => {
     if (!overrideUserId) return
     const userObj = users.find(u => u.id === overrideUserId)
     if (!userObj) return
@@ -195,106 +224,144 @@ export const UsersTab: React.FC = () => {
       setOverrideSheetOpen(false)
     } catch (err) {
       notify({ type: 'error', message: 'Failed to apply overrides.' })
+    } finally {
+      setShowConfirmSaveOverrides(false)
     }
   }
+
+  const originalUser = editingUserId ? users.find(u => u.id === editingUserId) : null
+  const isUserDirty = originalUser
+    ? (userName !== originalUser.name ||
+      userUsername !== (originalUser.username || '') ||
+      userEmail !== (originalUser.email || '') ||
+      userPhone !== (originalUser.phone || '') ||
+      userRoleId !== originalUser.roleId ||
+      userPassword.trim() !== '')
+    : (userName.trim() !== '' || userUsername.trim() !== '' || userEmail.trim() !== '' || userPhone.trim() !== '' || userRoleId !== '' || userPassword.trim() !== '')
+
+  const isUserValid = userName.trim() !== '' && userUsername.trim() !== '' && userEmail.trim() !== '' && userRoleId !== '' && (editingUserId ? true : userPassword.trim() !== '')
+  const canSaveUser = isUserDirty && isUserValid
+
+  const originalOverrideUser = overrideUserId ? users.find(u => u.id === overrideUserId) : null
+  const isOverrideDirty = originalOverrideUser
+    ? (overrideAssigned.join(',') !== (originalOverrideUser.assignedPermissions || []).join(',') ||
+      overrideRevoked.join(',') !== (originalOverrideUser.revokedPermissions || []).join(','))
+    : false
+  const canSaveOverrides = isOverrideDirty
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-between items-center px-1">
-        <h3 className="text-xs font-bold text-brand-chocolate/50 tracking-widest">Active Staff Accounts</h3>
-        <button
-          onClick={handleOpenNewUser}
-          className="text-xs font-bold text-brand-chocolate flex items-center gap-1 hover:opacity-80"
-        >
-          <Plus size={14} /> Add Staff
-        </button>
+        <h1 className="text-3xl font-display">Users</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenNewUser}
+            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      </div>
+
+      <div className="px-1">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search staff accounts..."
+        />
       </div>
 
       <div className="flex flex-col gap-3">
-        {visibleUsers.map((userObj) => {
-          const userRole = roles.find(r => r.id === userObj.roleId)
-          const isOwnAccount = currentUser?.id === userObj.id
-          const isProtectedAdmin = userObj.id === ADMIN_USER_ID
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-8 text-brand-chocolate/50 text-sm font-bold">
+            No staff accounts found matching "{searchQuery}"
+          </div>
+        ) : (
+          filteredUsers.map((userObj) => {
+            const userRole = roles.find(r => r.id === userObj.roleId)
+            const isOwnAccount = currentUser?.id === userObj.id
+            const isProtectedAdmin = userObj.id === ADMIN_USER_ID
 
-          return (
-            <div key={userObj.id} className="card flex flex-col gap-3 relative">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow font-display text-lg"
-                    style={{ backgroundColor: userRole?.color || '#3d2314' }}
-                  >
-                    {userObj.name[0]}
+            return (
+              <div key={userObj.id} className="card flex flex-col gap-3 relative">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow font-display text-lg"
+                      style={{ backgroundColor: userRole?.color || '#3d2314' }}
+                    >
+                      {userObj.name[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-display text-brand-chocolate flex items-center gap-1.5 leading-tight">
+                        {userObj.name}
+                        {isOwnAccount && (
+                          <span className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded bg-green-50 text-green-600 border border-green-200">
+                            You
+                          </span>
+                        )}
+                      </h4>
+                      <p className="text-xs font-bold text-brand-chocolate/40 mt-0.5">
+                        Role: <span style={{ color: userRole?.color }}>{userRole?.name || 'Unknown'}</span>
+                        {userObj.username && <span> &bull; @{userObj.username}</span>}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-lg font-display text-brand-chocolate flex items-center gap-1.5 leading-tight">
-                      {userObj.name}
-                      {isOwnAccount && (
-                        <span className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded bg-green-50 text-green-600 border border-green-200">
-                          You
-                        </span>
-                      )}
-                    </h4>
-                    <p className="text-xs font-bold text-brand-chocolate/40 mt-0.5">
-                      Role: <span style={{ color: userRole?.color }}>{userRole?.name || 'Unknown'}</span>
-                      {userObj.username && <span> &bull; @{userObj.username}</span>}
-                    </p>
+
+                  {/* Edit controls (Cannot edit self core details, only other users) */}
+                  <div className="flex items-center gap-2">
+                    {!isOwnAccount && (
+                      <button
+                        onClick={() => handleOpenEditUser(userObj.id)}
+                        className="w-7 h-7 bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/10 rounded-lg flex items-center justify-center transition-all"
+                        title="Edit Name/Role"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+
+                    {!isOwnAccount && !isProtectedAdmin && (
+                      <button
+                        onClick={() => setUserToDelete(userObj.id)}
+                        className="w-7 h-7 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all"
+                        title="Remove account"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Edit controls (Cannot edit self core details, only other users) */}
-                <div className="flex items-center gap-2">
-                  {!isOwnAccount && (
-                    <button
-                      onClick={() => handleOpenEditUser(userObj.id)}
-                      className="w-7 h-7 bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/10 rounded-lg flex items-center justify-center transition-all"
-                      title="Edit Name/Role"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  )}
+                {/* Direct Override Summary & Switch trigger */}
+                <div className="pt-2 border-t border-brand-chocolate/5 flex items-center justify-between text-xs">
+                  <div className="flex gap-2">
+                    {userObj.assignedPermissions && userObj.assignedPermissions.length > 0 && (
+                      <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
+                        +{userObj.assignedPermissions.length} Grants
+                      </span>
+                    )}
+                    {userObj.revokedPermissions && userObj.revokedPermissions.length > 0 && (
+                      <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                        -{userObj.revokedPermissions.length} Revoked
+                      </span>
+                    )}
+                  </div>
 
-                  {!isOwnAccount && !isProtectedAdmin && (
+                  {!isOwnAccount ? (
                     <button
-                      onClick={() => setUserToDelete(userObj.id)}
-                      className="w-7 h-7 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all"
-                      title="Remove account"
+                      onClick={() => handleOpenOverrides(userObj.id)}
+                      className="text-[10px] font-bold text-brand-chocolate bg-brand-chocolate/5 hover:bg-brand-dough px-3 py-1.5 rounded-lg border border-brand-chocolate/10 transition-colors flex items-center gap-1"
                     >
-                      <Trash2 size={13} />
+                      <Key size={10} /> Overrides...
                     </button>
+                  ) : (
+                    <span className="text-[10px] text-brand-chocolate/30 italic pr-1">Own account is immutable</span>
                   )}
                 </div>
               </div>
-
-              {/* Direct Override Summary & Switch trigger */}
-              <div className="pt-2 border-t border-brand-chocolate/5 flex items-center justify-between text-xs">
-                <div className="flex gap-2">
-                  {userObj.assignedPermissions && userObj.assignedPermissions.length > 0 && (
-                    <span className="text-[9px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-200">
-                      +{userObj.assignedPermissions.length} Grants
-                    </span>
-                  )}
-                  {userObj.revokedPermissions && userObj.revokedPermissions.length > 0 && (
-                    <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
-                      -{userObj.revokedPermissions.length} Revoked
-                    </span>
-                  )}
-                </div>
-
-                {!isOwnAccount ? (
-                  <button
-                    onClick={() => handleOpenOverrides(userObj.id)}
-                    className="text-[10px] font-bold text-brand-chocolate bg-brand-chocolate/5 hover:bg-brand-dough px-3 py-1.5 rounded-lg border border-brand-chocolate/10 transition-colors flex items-center gap-1"
-                  >
-                    <Key size={10} /> Overrides...
-                  </button>
-                ) : (
-                  <span className="text-[10px] text-brand-chocolate/30 italic pr-1">Own account is immutable</span>
-                )}
-              </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
 
       {/* --- BOTTOM SHEET: USER CREATOR/EDITOR --- */}
@@ -304,16 +371,20 @@ export const UsersTab: React.FC = () => {
         title={editingUserId ? 'Edit Account' : 'Create Staff Account'}
         subtitle="Provide the staff member name and secure password"
       >
-        <form onSubmit={handleSaveUser} className="flex flex-col gap-4">
+        <form onSubmit={handleSaveUserClick} noValidate className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest px-1">Staff Full Name</label>
             <input
               type="text"
               value={userName}
-              onChange={(e) => setUserName(e.target.value)}
+              onChange={(e) => {
+                setUserName(e.target.value)
+                if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+              }}
               placeholder="e.g. Kofi, Ama"
-              className="w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate"
+              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.name ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
+            {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -321,10 +392,14 @@ export const UsersTab: React.FC = () => {
             <input
               type="text"
               value={userUsername}
-              onChange={(e) => setUserUsername(e.target.value)}
+              onChange={(e) => {
+                setUserUsername(e.target.value)
+                if (errors.username) setErrors(prev => ({ ...prev, username: '' }))
+              }}
               placeholder="e.g. kofi.baker"
-              className="w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate"
+              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.username ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
+            {errors.username && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.username}</p>}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -332,10 +407,14 @@ export const UsersTab: React.FC = () => {
             <input
               type="email"
               value={userEmail}
-              onChange={(e) => setUserEmail(e.target.value)}
+              onChange={(e) => {
+                setUserEmail(e.target.value)
+                if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+              }}
               placeholder="e.g. kofi@mysterybakebite.com"
-              className="w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate"
+              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.email ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
+            {errors.email && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.email}</p>}
           </div>
 
           <div className="flex flex-col gap-1">
@@ -343,39 +422,56 @@ export const UsersTab: React.FC = () => {
             <input
               type="tel"
               value={userPhone}
-              onChange={(e) => setUserPhone(e.target.value)}
+              onChange={(e) => {
+                setUserPhone(e.target.value)
+                if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
+              }}
               placeholder="e.g. 0540000000"
-              className="w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate"
+              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.phone ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
+            {errors.phone && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.phone}</p>}
           </div>
 
           {/* Role selector */}
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest px-1">Role</label>
-            <DropDown
-              value={userRoleId}
-              onChange={setUserRoleId}
-              options={roles.map(r => ({ value: r.id, label: r.name }))}
-              placeholder="Select a role"
-            />
+            <div className={`${errors.roleId ? 'border border-red-500 rounded-lg p-[1px] bg-red-50/50' : ''}`}>
+              <DropDown
+                value={userRoleId}
+                onChange={(val) => {
+                  setUserRoleId(val)
+                  if (errors.roleId) setErrors(prev => ({ ...prev, roleId: '' }))
+                }}
+                options={roles.map(r => ({ value: r.id, label: r.name }))}
+                placeholder="Select a role"
+              />
+            </div>
+            {errors.roleId && <p className="text-[10px] text-red-500 font-bold mt-0.5">{errors.roleId}</p>}
           </div>
 
           {/* Secure passkey */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest px-1">Access Password</label>
+            <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest px-1">
+              {editingUserId ? 'Reset Password (leave empty to keep current)' : 'Access Password'}
+            </label>
             <input
               type="text"
               value={userPassword}
-              onChange={(e) => setUserPassword(e.target.value)}
-              placeholder="e.g. staff123, 7789"
-              className="w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate"
+              onChange={(e) => {
+                setUserPassword(e.target.value)
+                if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
+              }}
+              placeholder={editingUserId ? 'Enter new password to reset...' : 'e.g. staff123, 7789'}
+              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.password ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
+            {errors.password && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.password}</p>}
           </div>
 
           <div className="sticky bottom-0 bg-transparent pt-2 pb-4 z-10 mt-2">
             <button
               type="submit"
-              className="w-full h-14 bg-brand-chocolate text-white font-bold rounded-md text-lg shadow-xl active:scale-[0.98] transition-transform"
+              disabled={!canSaveUser}
+              className="w-full h-14 bg-brand-chocolate text-white font-bold rounded-md text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Save Staff
             </button>
@@ -390,9 +486,9 @@ export const UsersTab: React.FC = () => {
         title="Direct Access Overrides"
         subtitle={`Set explicit allowed or blocked permissions override rules for ${users.find(u => u.id === overrideUserId)?.name}`}
       >
-        <div className="flex flex-col gap-4">
+        <form onSubmit={handleSaveOverridesClick} className="flex flex-col gap-4">
           <div className="flex items-center justify-between gap-4 p-3 bg-brand-chocolate/5 rounded-md border border-brand-chocolate/10 text-xs leading-snug w-full">
-            
+
             {/* Left Side: Legend Items */}
             <div className="flex flex-col gap-3">
               {/* Top Row: Inherited States */}
@@ -492,7 +588,8 @@ export const UsersTab: React.FC = () => {
                     { resource: 'pantry', name: 'Pantry' },
                     { resource: 'reports', name: 'Reports' },
                     { resource: 'settings', name: 'Settings' },
-                    { resource: 'users', name: 'Users' }
+                    { resource: 'users', name: 'Users' },
+                    { resource: 'roles', name: 'Roles' }
                   ].map((mod, idx, arr) => (
                     <tr
                       key={mod.resource}
@@ -500,11 +597,9 @@ export const UsersTab: React.FC = () => {
                     >
                       <td className="py-4 pl-4 text-xs font-bold text-brand-chocolate">{mod.name}</td>
                       {['view', 'create', 'edit', 'delete'].map(action => {
-                        const key = mod.resource === 'users' && action === 'edit'
-                          ? 'manage:users'
-                          : `${action}:${mod.resource}`
+                        const key = `${action}:${mod.resource}`
 
-                        const available = SYSTEM_PERMISSIONS.some(p => p.key === key)
+                        const available = SYSTEM_PERMISSIONS.some(p => p.key === key) && hasPermission(key) && (key !== 'delete:orders' || isSuperAdmin)
 
                         if (!available) {
                           return <td key={action} className="py-4 text-center"><span className="text-brand-chocolate/20">-</span></td>
@@ -568,21 +663,57 @@ export const UsersTab: React.FC = () => {
 
           <div className="sticky bottom-0 bg-transparent pt-2 pb-4 z-10 mt-2">
             <button
-              onClick={handleSaveOverrides}
-              className="w-full h-14 bg-brand-chocolate text-white font-bold rounded-md text-lg shadow-xl active:scale-[0.98] transition-transform"
+              type="submit"
+              disabled={!canSaveOverrides}
+              className="w-full h-14 bg-brand-chocolate text-white font-bold rounded-md text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Apply Overrides
             </button>
           </div>
-        </div>
+        </form>
       </BottomSheet>
 
+      {/* Delete User Confirm */}
       <ConfirmModal
-        isOpen={userToDelete !== null}
+        isOpen={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={handleConfirmDeleteUser}
-        title="Remove Staff Account?"
-        message="Are you sure you want to delete this staff member's account? They will lose access to the bakery suite instantly!"
+        title="Delete Staff Account"
+        message={
+          <p>
+            Are you sure you want to permanently delete this staff account? <strong>This action cannot be undone.</strong>
+          </p>
+        }
+        confirmText="Yes, Delete Staff"
+        cancelText="Keep Staff"
+        isDestructive={true}
+      />
+
+      {/* Save User Confirm */}
+      <ConfirmModal
+        isOpen={showConfirmSaveUser}
+        onClose={() => setShowConfirmSaveUser(false)}
+        onConfirm={executeSaveUser}
+        title={editingUserId ? 'Save Changes?' : 'Create Staff?'}
+        message={editingUserId
+          ? `Update "${userName}" with the new details?`
+          : `Save "${userName}" as a new staff member?`
+        }
+        confirmText={editingUserId ? 'Yes, Save' : 'Yes, Add'}
+        isDestructive={false}
+        watermarkType="update"
+      />
+
+      {/* Save Overrides Confirm */}
+      <ConfirmModal
+        isOpen={showConfirmSaveOverrides}
+        onClose={() => setShowConfirmSaveOverrides(false)}
+        onConfirm={executeSaveOverrides}
+        title="Apply Overrides?"
+        message="Apply these custom permission overrides to this user?"
+        confirmText="Yes, Apply"
+        isDestructive={false}
+        watermarkType="update"
       />
     </div>
   )
