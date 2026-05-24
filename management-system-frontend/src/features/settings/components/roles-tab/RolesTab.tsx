@@ -151,24 +151,28 @@ export const RolesTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-between items-center px-1">
-        <h1 className="text-3xl font-display">Roles</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenNewRole}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+        <div className="flex justify-between items-center px-1">
+          <h1 className="text-3xl font-display">Roles</h1>
+          <div className="flex items-center gap-2">
+            {hasPermission('create:roles') && (
+              <button
+                onClick={handleOpenNewRole}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="px-1">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search roles..."
-        />
+        <div className="px-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search roles..."
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -205,20 +209,24 @@ export const RolesTab: React.FC = () => {
                 {/* Actions (Disable Admin edits) */}
                 {role.id !== ADMIN_ROLE_ID && (
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleOpenEditRole(role.id)}
-                      className="w-7 h-7 bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/10 rounded-lg flex items-center justify-center transition-all"
-                      title="Edit Role permissions"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      onClick={() => setRoleToDelete(role.id)}
-                      className="w-7 h-7 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all"
-                      title="Delete Role"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {hasPermission('edit:roles') && (
+                      <button
+                        onClick={() => handleOpenEditRole(role.id)}
+                        className="w-7 h-7 bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/10 rounded-lg flex items-center justify-center transition-all"
+                        title="Edit Role permissions"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {hasPermission('delete:roles') && (
+                      <button
+                        onClick={() => setRoleToDelete(role.id)}
+                        className="w-7 h-7 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all"
+                        title="Delete Role"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -321,6 +329,7 @@ export const RolesTab: React.FC = () => {
                       { resource: 'customers', name: 'Customers' },
                       { resource: 'recipes', name: 'Recipes' },
                       { resource: 'pantry', name: 'Pantry' },
+                      { resource: 'equipment', name: 'Equipment' },
                       { resource: 'reports', name: 'Reports' },
                       { resource: 'settings', name: 'Settings' },
                       { resource: 'users', name: 'Users' },

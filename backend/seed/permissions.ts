@@ -38,6 +38,12 @@ export const SYSTEM_PERMISSIONS: SystemPermission[] = [
   // Reports
   { key: 'view:reports', title: 'View Reports', desc: 'Allows viewing analytics and financial reporting dashboard.' },
 
+  // Equipment
+  { key: 'view:equipment', title: 'View Equipment', desc: 'Allows viewing bakery equipment.' },
+  { key: 'create:equipment', title: 'Add Equipment', desc: 'Allows adding new equipment.' },
+  { key: 'edit:equipment', title: 'Edit Equipment', desc: 'Allows updating equipment details and status.' },
+  { key: 'delete:equipment', title: 'Delete Equipment', desc: 'Allows removing equipment records.' },
+
   // Settings & Administration
   { key: 'view:settings', title: 'View Settings', desc: 'Allows viewing the settings page.' },
   { key: 'view:users', title: 'View Users', desc: 'Allows viewing user accounts and roles.' },

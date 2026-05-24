@@ -251,24 +251,28 @@ export const UsersTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-between items-center px-1">
-        <h1 className="text-3xl font-display">Users</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenNewUser}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+        <div className="flex justify-between items-center px-1">
+          <h1 className="text-3xl font-display">Users</h1>
+          <div className="flex items-center gap-2">
+            {hasPermission('create:users') && (
+              <button
+                onClick={handleOpenNewUser}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="px-1">
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search staff accounts..."
-        />
+        <div className="px-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search staff accounts..."
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -287,7 +291,7 @@ export const UsersTab: React.FC = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow font-display text-lg"
+                      className="w-10 h-10 rounded-md flex items-center justify-center text-white shadow font-display text-lg leading-none pt-[2px]"
                       style={{ backgroundColor: userRole?.color || '#3d2314' }}
                     >
                       {userObj.name[0]}
@@ -310,7 +314,7 @@ export const UsersTab: React.FC = () => {
 
                   {/* Edit controls (Cannot edit self core details, only other users) */}
                   <div className="flex items-center gap-2">
-                    {!isOwnAccount && (
+                    {!isOwnAccount && hasPermission('edit:users') && (
                       <button
                         onClick={() => handleOpenEditUser(userObj.id)}
                         className="w-7 h-7 bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/10 rounded-lg flex items-center justify-center transition-all"
@@ -320,7 +324,7 @@ export const UsersTab: React.FC = () => {
                       </button>
                     )}
 
-                    {!isOwnAccount && !isProtectedAdmin && (
+                    {!isOwnAccount && !isProtectedAdmin && hasPermission('delete:users') && (
                       <button
                         onClick={() => setUserToDelete(userObj.id)}
                         className="w-7 h-7 bg-red-50 text-red-400 hover:text-red-600 hover:bg-red-100 rounded-lg flex items-center justify-center transition-all"
@@ -586,6 +590,7 @@ export const UsersTab: React.FC = () => {
                     { resource: 'customers', name: 'Customers' },
                     { resource: 'recipes', name: 'Recipes' },
                     { resource: 'pantry', name: 'Pantry' },
+                    { resource: 'equipment', name: 'Equipment' },
                     { resource: 'reports', name: 'Reports' },
                     { resource: 'settings', name: 'Settings' },
                     { resource: 'users', name: 'Users' },
