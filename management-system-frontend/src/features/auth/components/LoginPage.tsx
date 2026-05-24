@@ -17,7 +17,7 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    const trimmedUsername = username.trim().toLowerCase()
+    const trimmedUsername = username.trim()
     if (!trimmedUsername) {
       notify({
         type: 'error',

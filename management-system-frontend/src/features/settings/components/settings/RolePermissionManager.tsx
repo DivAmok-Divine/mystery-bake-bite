@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../../auth/api/AuthContext'
 import { ADMIN_USER_ID } from '@backend/seed/users'
+import { ADMIN_ROLE_ID } from '@backend/seed/roles'
 import { ArrowLeft, Shield, User } from 'lucide-react'
 import { RolesTab } from './RolesTab'
 import { UsersTab } from './UsersTab'
@@ -14,7 +15,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
   const [activeTab, setActiveTab] = useState<'roles' | 'users'>('roles')
 
   // Calculate visible users for the tab counter
-  const isSuperAdmin = currentUser?.roleId === 'admin'
+  const isSuperAdmin = currentUser?.roleId === ADMIN_ROLE_ID
   const visibleUsers = users.filter(u => isSuperAdmin || u.id !== ADMIN_USER_ID)
 
   return (

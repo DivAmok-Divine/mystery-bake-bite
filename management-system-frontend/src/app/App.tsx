@@ -3,6 +3,7 @@ import { Layout } from '@shared/ui/layout/Layout'
 import { FeatureRenderer } from './FeatureRenderer.tsx'
 import { WelcomeSplashScreen } from '@shared/ui/molecules/WelcomeSplashScreen.tsx'
 import { SplashScreen } from '@shared/ui/molecules/SplashScreen.tsx'
+import { PwaUpdater } from '@shared/ui/molecules/PwaUpdater.tsx'
 import { useAuth } from '../features/auth/api/AuthContext'
 import { LoginPage } from '../features/auth/components/LoginPage'
 import { ShieldAlert, LogOut } from 'lucide-react'
@@ -42,7 +43,7 @@ function App() {
         if (feat === 'reporting') return hasPermission('view:reports');
         return hasPermission(`view:${feat}`);
       });
-      
+
       const isFeatureAllowed = currentFeature === 'reporting'
         ? hasPermission('view:reports')
         : hasPermission(`view:${currentFeature}`);
@@ -67,9 +68,10 @@ function App() {
       setCurrentFeature(newFeature)
     }
   }
-  
+
   return (
     <>
+      <PwaUpdater />
       {!isInitialSplashDone ? (
         <SplashScreen onComplete={() => setIsInitialSplashDone(true)} />
       ) : !user ? (
@@ -87,7 +89,7 @@ function App() {
           <p className="text-sm text-brand-chocolate/60 max-w-xs leading-relaxed mb-8">
             Hello, <strong className="text-brand-chocolate font-bold">{user?.name}</strong>. Your account does not have any active privileges assigned yet. Please contact an administrator to activate your role.
           </p>
-          <button 
+          <button
             onClick={() => logout()}
             className="w-full max-w-xs py-3.5 bg-brand-chocolate text-white font-bold rounded-xl text-sm shadow-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all cursor-pointer"
           >
