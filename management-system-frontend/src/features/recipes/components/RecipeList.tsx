@@ -11,9 +11,11 @@ import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Recipe } from '@backend/lib/db'
+import { useAuth } from '../../auth/api/AuthContext'
 
 export const RecipeList: React.FC = () => {
   const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingRecipe, setIsAddingRecipe] = useState(false)
@@ -51,12 +53,14 @@ export const RecipeList: React.FC = () => {
       <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Secret Recipes</h1>
-          <button 
-            onClick={() => setIsAddingRecipe(true)}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+          {hasPermission('create:recipes') && (
+            <button 
+              onClick={() => setIsAddingRecipe(true)}
+              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </button>
+          )}
         </div>
 
         <SearchBar 
@@ -73,8 +77,8 @@ export const RecipeList: React.FC = () => {
           icon={BookOpen}
           title="No recipes yet"
           description="Save your secret formulas by tapping the button below."
-          actionLabel="+ Add secret recipe"
-          onAction={() => setIsAddingRecipe(true)}
+          actionLabel={hasPermission('create:recipes') ? "+ Add secret recipe" : undefined}
+          onAction={hasPermission('create:recipes') ? () => setIsAddingRecipe(true) : undefined}
         />
       ) : filteredRecipes.length === 0 ? (
         <EmptyState
@@ -107,22 +111,28 @@ export const RecipeList: React.FC = () => {
                 </div>
 
                 {/* Right side: Compact Vertical Action Column */}
-                <div className="flex flex-col items-center gap-2">
-                  <button 
-                    onClick={() => setEditingRecipe(recipe)}
-                    className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                    title="Edit Recipe"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button 
-                    onClick={() => recipe.id && setRecipeToDelete(recipe.id)}
-                    className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
-                    title="Delete Recipe"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                {(hasPermission('edit:recipes') || hasPermission('delete:recipes')) && (
+                  <div className="flex flex-col items-center gap-2">
+                    {hasPermission('edit:recipes') && (
+                      <button 
+                        onClick={() => setEditingRecipe(recipe)}
+                        className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                        title="Edit Recipe"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {hasPermission('delete:recipes') && (
+                      <button 
+                        onClick={() => recipe.id && setRecipeToDelete(recipe.id)}
+                        className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
+                        title="Delete Recipe"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               
               <button 

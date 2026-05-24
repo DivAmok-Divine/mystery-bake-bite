@@ -17,7 +17,7 @@ interface PantryDetailsProps {
 }
 
 export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, onRestock }) => {
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   if (isLoading || !item) {
     return (
       <div className="flex flex-col gap-5 pb-8 animate-pulse">
@@ -106,7 +106,7 @@ export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, o
           <p className="text-[10px] text-brand-chocolate/30">
             Minimum threshold: {item.minStock ?? 0} {item.unit}
           </p>
-          {onRestock && isAdmin && (
+          {onRestock && hasPermission('create:pantry') && (
             <button 
               onClick={onRestock}
               className="text-[10px] font-bold text-orange-600 underline"

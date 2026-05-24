@@ -9,16 +9,16 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeatureChange }) => {
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   
   const navItems = [
-    { id: 'orders', icon: ShoppingBag, label: 'Orders' },
-    { id: 'products', icon: Package, label: 'Bite' },
-    { id: 'customers', icon: Users, label: 'Customers' },
-    { id: 'recipes', icon: BookOpen, label: 'Recipes' },
-    { id: 'pantry', icon: ShoppingCart, label: 'Pantry' },
-    ...(isAdmin ? [{ id: 'reporting' as const, icon: BarChart3, label: 'Reports' }] : []),
-  ] as const
+    ...(hasPermission('view:orders') ? [{ id: 'orders' as const, icon: ShoppingBag, label: 'Orders' }] : []),
+    ...(hasPermission('view:products') ? [{ id: 'products' as const, icon: Package, label: 'Bite' }] : []),
+    ...(hasPermission('view:customers') ? [{ id: 'customers' as const, icon: Users, label: 'Customers' }] : []),
+    ...(hasPermission('view:recipes') ? [{ id: 'recipes' as const, icon: BookOpen, label: 'Recipes' }] : []),
+    ...(hasPermission('view:pantry') ? [{ id: 'pantry' as const, icon: ShoppingCart, label: 'Pantry' }] : []),
+    ...(hasPermission('view:reports') ? [{ id: 'reporting' as const, icon: BarChart3, label: 'Reports' }] : []),
+  ]
 
   const touchStart = React.useRef<{ x: number, y: number } | null>(null)
   const minSwipeDistance = 50
@@ -65,14 +65,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
             <p className="text-xs text-brand-chocolate/50  font-bold whitespace-nowrap">Unveiling the uniqueness of a recipe</p>
           </div>
         </div>
-        <button 
-          onClick={() => onFeatureChange('settings')}
-          className={`w-20 flex items-center justify-center transition-all ${
-            currentFeature === 'settings' ? "bg-brand-chocolate text-white" : "text-brand-chocolate hover:bg-brand-chocolate/5"
-          }`}
-        >
-          {currentFeature === 'settings' ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {hasPermission('view:settings') && (
+          <button 
+            onClick={() => onFeatureChange('settings')}
+            className={`w-20 flex items-center justify-center transition-all ${
+              currentFeature === 'settings' ? "bg-brand-chocolate text-white" : "text-brand-chocolate hover:bg-brand-chocolate/5"
+            }`}
+          >
+            {currentFeature === 'settings' ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        )}
       </header>
 
       <main className="flex-1 p-3 pt-0">
@@ -81,7 +83,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
 
       {/* Bottom Navigation */}
       {currentFeature !== 'settings' && (
-        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-lg border-t border-brand-chocolate/10 px-6 py-3 flex justify-between items-center z-50">
+        <nav className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/80 backdrop-blur-lg border-t border-brand-chocolate/10 px-4 py-3 flex items-center z-50 ${
+          navItems.length <= 2 ? 'justify-center gap-20' : navItems.length === 3 ? 'justify-center gap-12' : 'justify-around'
+        }`}>
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = currentFeature === item.id
@@ -90,7 +94,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
               <button
                 key={item.id}
                 onClick={() => onFeatureChange(item.id)}
-                className={`flex flex-col items-center gap-1 transition-colors ${
+                className={`flex flex-col items-center gap-1 w-16 transition-colors ${
                   isActive ? "text-brand-chocolate" : "text-brand-chocolate/30"
                 }`}
               >

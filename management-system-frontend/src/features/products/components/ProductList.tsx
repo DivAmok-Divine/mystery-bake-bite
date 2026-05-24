@@ -15,6 +15,7 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import type { Product } from '@backend/lib/db'
 import { formatCurrency } from '@shared/utils/formatters'
 import { useNotification } from '@shared/ui/molecules/Notification'
+import { useAuth } from '../../auth/api/AuthContext'
 
 
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
@@ -24,6 +25,7 @@ import { EmptyState } from '@shared/ui/molecules/EmptyState'
 
 export const ProductList: React.FC = () => {
   const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const { products, isLoading, deleteProduct } = useProducts()
   const { categories } = useCategories()
   const [searchQuery, setSearchQuery] = useState('')
@@ -118,12 +120,14 @@ export const ProductList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddFormOpen(true)}
-              className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:products') && (
+              <button 
+                onClick={() => setIsAddFormOpen(true)}
+                className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -184,8 +188,8 @@ export const ProductList: React.FC = () => {
           image="/logo-clean.png"
           title="No bites found yet"
           description="Tap the button below to add your first creation"
-          actionLabel="+ Add first bite"
-          onAction={() => setIsAddFormOpen(true)}
+          actionLabel={hasPermission('create:products') ? "+ Add first bite" : undefined}
+          onAction={hasPermission('create:products') ? () => setIsAddFormOpen(true) : undefined}
         />
       ) : filteredProducts.length === 0 ? (
         <EmptyState
@@ -224,18 +228,22 @@ export const ProductList: React.FC = () => {
                     >
                       <Eye size={14} />
                     </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
-                      className="w-7 h-7 bg-white text-brand-chocolate/80 active:text-brand-chocolate rounded-md flex items-center justify-center shadow-md active:scale-90"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); product.id && setProductToDelete(product.id); }}
-                      className="w-7 h-7 bg-white text-red-500 rounded-md flex items-center justify-center shadow-md active:scale-90"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {hasPermission('edit:products') && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
+                        className="w-7 h-7 bg-white text-brand-chocolate/80 active:text-brand-chocolate rounded-md flex items-center justify-center shadow-md active:scale-90"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {hasPermission('delete:products') && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); product.id && setProductToDelete(product.id); }}
+                        className="w-7 h-7 bg-white text-red-500 rounded-md flex items-center justify-center shadow-md active:scale-90"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="px-1">
@@ -272,18 +280,22 @@ export const ProductList: React.FC = () => {
                   >
                     <Eye size={16} />
                   </button>
-                  <button 
-                    onClick={() => handleEdit(product)}
-                    className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button 
-                    onClick={() => product.id && setProductToDelete(product.id)}
-                    className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {hasPermission('edit:products') && (
+                    <button 
+                      onClick={() => handleEdit(product)}
+                      className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  {hasPermission('delete:products') && (
+                    <button 
+                      onClick={() => product.id && setProductToDelete(product.id)}
+                      className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             )

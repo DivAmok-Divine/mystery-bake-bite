@@ -100,6 +100,7 @@ export interface Role {
   id: string;
   name: string;
   color: string;
+  description?: string;
   permissions: string[];
   createdAt: Date;
 }
@@ -107,6 +108,9 @@ export interface Role {
 export interface User {
   id: string;
   name: string;
+  username: string;
+  email: string;
+  phone: string;
   roleId: string;
   password?: string;
   assignedPermissions?: string[];
@@ -153,6 +157,19 @@ export class MysteryBakeDB extends Dexie {
       pantryHistory: 'id, itemId, type',
       roles: 'id, name',
       users: 'id, name, roleId'
+    });
+
+    this.version(3).stores({
+      customers: 'id, name, status',
+      products: 'id, name, category',
+      productCategories: 'id, name',
+      orders: 'id, orderNumber, customerId, customerName, status',
+      recipes: 'id, title',
+      equipment: 'id, name, status',
+      pantry: 'id, name, category, status',
+      pantryHistory: 'id, itemId, type',
+      roles: 'id, name',
+      users: 'id, name, username, email, roleId'
     });
   }
 }

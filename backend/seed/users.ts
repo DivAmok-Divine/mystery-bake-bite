@@ -99,6 +99,9 @@ export const SEEDED_USERS: User[] = [
   {
     id: ADMIN_USER_ID,
     name: 'DivAmok',
+    username: 'divamok',
+    email: 'admin@mysterybakebite.com',
+    phone: '0000000000',
     roleId: ADMIN_ROLE_ID,
     password: hashPassword('password1'),
     createdAt: new Date('2026-05-18T00:00:00Z')

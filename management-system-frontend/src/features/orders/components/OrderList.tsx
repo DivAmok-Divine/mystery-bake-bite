@@ -28,7 +28,7 @@ import { DateRangePicker, type DateRange } from '@shared/ui/molecules/calender/D
 
 export const OrderList: React.FC = () => {
   const { notify } = useNotification()
-  const { isAdmin } = useAuth()
+  const { isAdmin, hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingOrder, setIsAddingOrder] = useState(false)
@@ -154,12 +154,14 @@ export const OrderList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddingOrder(true)}
-              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:orders') && (
+              <button 
+                onClick={() => setIsAddingOrder(true)}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -334,8 +336,8 @@ export const OrderList: React.FC = () => {
           icon={ShoppingBag}
           title="No orders yet"
           description="Start your first bake bite by tapping the button below."
-          actionLabel="+ Add first order"
-          onAction={() => setIsAddingOrder(true)}
+          actionLabel={hasPermission('create:orders') ? "+ Add first order" : undefined}
+          onAction={hasPermission('create:orders') ? () => setIsAddingOrder(true) : undefined}
         />
       ) : filteredOrders.length === 0 ? (
         <EmptyState
@@ -346,8 +348,8 @@ export const OrderList: React.FC = () => {
               ? `We couldn't find anything matching "${searchQuery}"` 
               : "No orders match the selected filters or date range."
           }
-          actionLabel={!searchQuery ? "+ Add an order" : undefined}
-          onAction={!searchQuery ? () => setIsAddingOrder(true) : undefined}
+          actionLabel={!searchQuery && hasPermission('create:orders') ? "+ Add an order" : undefined}
+          onAction={!searchQuery && hasPermission('create:orders') ? () => setIsAddingOrder(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">
@@ -373,26 +375,32 @@ export const OrderList: React.FC = () => {
                     </button>
                     {order.status === 'Pending' && (
                       <>
-                        <button 
-                          onClick={() => handleEditOrder(order)}
-                          className="text-brand-chocolate/40 hover:text-brand-chocolate transition-colors"
-                          title="Edit Order"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <div className="w-px h-3 bg-brand-chocolate/10 mx-1" />
-                        <button 
-                          onClick={() => setOrderToComplete(order)}
-                          className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
-                        >
-                          Mark Done
-                        </button>
-                        <button 
-                          onClick={() => setOrderToCancel(order)}
-                          className="text-[10px] text-red-500 font-bold underline whitespace-nowrap"
-                        >
-                          Cancel Order
-                        </button>
+                        {hasPermission('edit:orders') && (
+                          <button 
+                            onClick={() => handleEditOrder(order)}
+                            className="text-brand-chocolate/40 hover:text-brand-chocolate transition-colors"
+                            title="Edit Order"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                        )}
+                        {(hasPermission('edit:orders') || hasPermission('delete:orders')) && <div className="w-px h-3 bg-brand-chocolate/10 mx-1" />}
+                        {hasPermission('edit:orders') && (
+                          <button 
+                            onClick={() => setOrderToComplete(order)}
+                            className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
+                          >
+                            Mark Done
+                          </button>
+                        )}
+                        {hasPermission('delete:orders') && (
+                          <button 
+                            onClick={() => setOrderToCancel(order)}
+                            className="text-[10px] text-red-500 font-bold underline whitespace-nowrap ml-2"
+                          >
+                            Cancel Order
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

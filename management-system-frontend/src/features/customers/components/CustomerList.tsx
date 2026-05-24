@@ -15,10 +15,12 @@ import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
 import { toggleFilterValue, formatPhone } from '@shared/utils/commonUtils'
 import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Customer } from '@backend/lib/db'
+import { useAuth } from '../../auth/api/AuthContext'
 
 
 export const CustomerList: React.FC = () => {
   const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
@@ -92,12 +94,14 @@ export const CustomerList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddingCustomer(true)}
-              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:customers') && (
+              <button 
+                onClick={() => setIsAddingCustomer(true)}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -146,8 +150,8 @@ export const CustomerList: React.FC = () => {
           icon={User}
           title="No customers yet"
           description="Build your list of bite lovers by tapping the button below."
-          actionLabel="+ Add first customer"
-          onAction={() => setIsAddingCustomer(true)}
+          actionLabel={hasPermission('create:customers') ? "+ Add first customer" : undefined}
+          onAction={hasPermission('create:customers') ? () => setIsAddingCustomer(true) : undefined}
         />
       ) : filteredCustomers.length === 0 ? (
         <EmptyState
@@ -158,8 +162,8 @@ export const CustomerList: React.FC = () => {
               ? `We couldn't find any customers matching "${searchQuery}"` 
               : "No customers match the selected status filters."
           }
-          actionLabel={!searchQuery ? "+ Add customer" : undefined}
-          onAction={!searchQuery ? () => setIsAddingCustomer(true) : undefined}
+          actionLabel={!searchQuery && hasPermission('create:customers') ? "+ Add customer" : undefined}
+          onAction={!searchQuery && hasPermission('create:customers') ? () => setIsAddingCustomer(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">
@@ -202,20 +206,26 @@ export const CustomerList: React.FC = () => {
               </div>
               
               {/* Action Buttons arranged vertically - pushed to the right */}
-              <div className="flex flex-col gap-1 border-l border-brand-chocolate/5 pl-2 -mr-1">
-                <button 
-                  onClick={() => handleEdit(customer)}
-                  className="w-6 h-6 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                >
-                  <Pencil size={12} />
-                </button>
-                <button 
-                  onClick={() => customer.id && setCustomerToDelete(customer.id)}
-                  className="w-6 h-6 text-red-400/60 hover:text-red-600 transition-colors flex items-center justify-center"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
+              {(hasPermission('edit:customers') || hasPermission('delete:customers')) && (
+                <div className="flex flex-col gap-1 border-l border-brand-chocolate/5 pl-2 -mr-1">
+                  {hasPermission('edit:customers') && (
+                    <button 
+                      onClick={() => handleEdit(customer)}
+                      className="w-6 h-6 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  )}
+                  {hasPermission('delete:customers') && (
+                    <button 
+                      onClick={() => customer.id && setCustomerToDelete(customer.id)}
+                      className="w-6 h-6 text-red-400/60 hover:text-red-600 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

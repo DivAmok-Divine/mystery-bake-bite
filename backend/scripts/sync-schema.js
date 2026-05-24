@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+//npm run db:sync - this is code t run it
 // Check if 'pg' is installed. If not, install it.
 try {
   require.resolve('pg');
@@ -406,20 +407,30 @@ CREATE POLICY "Allow public delete product-images" ON storage.objects FOR DELETE
 CREATE TABLE IF NOT EXISTS roles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    description TEXT,
     color TEXT NOT NULL,
     permissions TEXT[] NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS description TEXT;
+
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    username TEXT,
+    email TEXT,
+    phone TEXT,
     role_id TEXT REFERENCES roles(id) ON DELETE SET NULL,
     password TEXT NOT NULL,
     assigned_permissions TEXT[],
     revoked_permissions TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 
 -- Enable RLS for roles & users
 ALTER TABLE roles ENABLE ROW LEVEL SECURITY;
@@ -440,27 +451,39 @@ CREATE POLICY "Allow public read roles" ON roles FOR SELECT USING (true);
 CREATE POLICY "Allow public write roles" ON roles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read users" ON users FOR SELECT USING (true);
 CREATE POLICY "Allow public write users" ON users FOR ALL USING (true) WITH CHECK (true);
-
--- Seed Roles
-INSERT INTO roles (id, name, color, permissions)
-VALUES 
-('e8e81561-12f8-456b-a25e-ea78a48ef89a', 'Admin', '#3d2314', ARRAY['*'])
-ON CONFLICT (id) DO NOTHING;
-
--- Seed Users
-INSERT INTO users (id, name, role_id, password)
-VALUES 
-('a1c84b4a-f326-444a-a38f-a9cb6b6c085f', 'DivAmok', 'e8e81561-12f8-456b-a25e-ea78a48ef89a', '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8')
-ON CONFLICT (name) DO UPDATE SET id = EXCLUDED.id, role_id = EXCLUDED.role_id, password = EXCLUDED.password;
 `;
 
-  connectedClient.query(sqlSchema)
-    .then(() => {
+const sqlSeed = `
+-- Seed Roles
+INSERT INTO roles (id, name, description, color, permissions)
+VALUES 
+('e8e81561-12f8-456b-a25e-ea78a48ef89a', 'Admin', 'Has full access to all areas of the system.', '#3d2314', ARRAY['*'])
+ON CONFLICT (id) DO UPDATE SET description = EXCLUDED.description;
+
+-- Seed Users
+INSERT INTO users (id, name, username, email, phone, role_id, password)
+VALUES 
+('a1c84b4a-f326-444a-a38f-a9cb6b6c085f', 'DivAmok', 'DivAmok', 'divamok@gmail.com', '0540000000', 'e8e81561-12f8-456b-a25e-ea78a48ef89a', '0b14d501a594442a01c6859541bcb3e8164d183d32937b851835442f69d5c94e')
+ON CONFLICT (name) DO UPDATE SET username = EXCLUDED.username, email = EXCLUDED.email, phone = EXCLUDED.phone, role_id = EXCLUDED.role_id, password = EXCLUDED.password;
+`;
+
+  async function runMigrations() {
+    try {
+      console.log('🚀 Executing sqlSchema...');
+      await connectedClient.query(sqlSchema);
+      console.log('✅ sqlSchema executed successfully!');
+      
+      console.log('🚀 Executing sqlSeed...');
+      await connectedClient.query(sqlSeed);
+      console.log('✅ sqlSeed executed successfully!');
+      
       console.log('\n🎉 SCHEMA SYNCHRONIZED SUCCESSFULLY! All tables, relationships, and RLS policies are live!');
       process.exit(0);
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error('❌ Migration Execution error:', err.message);
       process.exit(1);
-    });
+    }
+  }
+  
+  runMigrations();
 });

@@ -29,7 +29,7 @@ import { useAuth } from '../../auth/api/AuthContext'
 
 export const PantryList: React.FC = () => {
   const { notify } = useNotification()
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -128,7 +128,7 @@ export const PantryList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            {isAdmin && (
+            {hasPermission('create:pantry') && (
               <button
                 onClick={() => setIsAddingItem(true)}
                 className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
@@ -193,8 +193,8 @@ export const PantryList: React.FC = () => {
           icon={ShoppingCart}
           title="Your pantry is empty"
           description="Add your flour, sugar, and other supplies to start tracking."
-          actionLabel="+ Add first item"
-          onAction={() => setIsAddingItem(true)}
+          actionLabel={hasPermission('create:pantry') ? "+ Add first item" : undefined}
+          onAction={hasPermission('create:pantry') ? () => setIsAddingItem(true) : undefined}
         />
       ) : filteredItems.length === 0 ? (
         <EmptyState
@@ -241,7 +241,7 @@ export const PantryList: React.FC = () => {
                       size="sm"
                       min={0}
                       max={item.maxStock !== undefined ? item.maxStock : item.currentStock}
-                      disableIncrement={!isAdmin}
+                      disableIncrement={!hasPermission('edit:pantry')}
                     />
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -259,30 +259,30 @@ export const PantryList: React.FC = () => {
                   >
                     <Eye size={14} />
                   </button>
-                  {isAdmin && (
-                    <>
-                      <button
-                        onClick={() => { 
-                          setSelectedItem(item); 
-                          setIsRestockForm(false); 
-                          setIsEditingItem(true) 
-                        }}
-                        className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => item.id && setItemToDelete(item.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
+                  {hasPermission('edit:pantry') && (
+                    <button
+                      onClick={() => { 
+                        setSelectedItem(item); 
+                        setIsRestockForm(false); 
+                        setIsEditingItem(true) 
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                  {hasPermission('delete:pantry') && (
+                    <button
+                      onClick={() => item.id && setItemToDelete(item.id)}
+                      className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[10px] font-bold text-emerald-600 leading-none">{formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
-                  {isAdmin && item.status !== 'In Stock' && (
+                  {hasPermission('create:pantry') && item.status !== 'In Stock' && (
                     <button 
                       onClick={() => {
                         setSelectedItem(item)
