@@ -3,7 +3,7 @@ import { useAuth } from '../../../auth/api/AuthContext.tsx'
 import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench, Key } from 'lucide-react'
 import { useDeveloperTools } from '../../../../mock-data/index.tsx'
 import { EquipmentList } from '../eqipments/EquipmentList.tsx'
-import { RolePermissionManager } from './RolePermissionManager.tsx'
+import { RolePermissionManager } from '../roles-permission-manager/RolePermissionManager.tsx'
 
 interface SettingsItem {
   label: string
@@ -23,7 +23,7 @@ export const SettingsPage: React.FC = () => {
   const { user, roles, logout, hasPermission } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
   const [showManager, setShowManager] = useState(false)
-  
+
   const { developerToolsSection, DeveloperToolsModal } = useDeveloperTools()
 
   if (showEquipment) {
@@ -39,14 +39,14 @@ export const SettingsPage: React.FC = () => {
 
   const accountItems: SettingsItem[] = [
     { label: 'Name', value: user?.name, icon: User },
-    { 
-      label: 'User Role', 
-      value: roleName, 
+    {
+      label: 'User Role',
+      value: roleName,
       icon: Shield
     },
-    { 
-      label: 'Equipments', 
-      value: 'Manage ovens, mixers & more', 
+    {
+      label: 'Equipments',
+      value: 'Manage ovens, mixers & more',
       icon: Wrench,
       action: () => setShowEquipment(true),
       actionLabel: 'Open'
@@ -61,7 +61,7 @@ export const SettingsPage: React.FC = () => {
     }
   ]
 
-  if (hasPermission('manage:users')) {
+  if (hasPermission('view:users') || hasPermission('view:roles')) {
     sections.push({
       title: 'Administration',
       items: [
@@ -112,8 +112,8 @@ export const SettingsPage: React.FC = () => {
                 {/* Top Row: User Role (50%) and Name (50%) as separate cards side by side */}
                 <div className="grid grid-cols-2 gap-2">
                   {section.items.slice(0, 2).map((item, j) => (
-                    <div 
-                      key={j} 
+                    <div
+                      key={j}
                       onClick={(!item.disabled && item.action) ? item.action : undefined}
                       className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
                     >
@@ -127,7 +127,7 @@ export const SettingsPage: React.FC = () => {
                         </div>
                       </div>
                       {item.action && (
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!item.disabled && item.action) item.action();
@@ -145,8 +145,8 @@ export const SettingsPage: React.FC = () => {
                 {/* Remaining items (Equipments, Slogan) as full width cards below */}
                 <div className="flex flex-col gap-2">
                   {section.items.slice(2).map((item, j) => (
-                    <div 
-                      key={j + 2} 
+                    <div
+                      key={j + 2}
                       onClick={(!item.disabled && item.action) ? item.action : undefined}
                       className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
                     >
@@ -160,7 +160,7 @@ export const SettingsPage: React.FC = () => {
                         </div>
                       </div>
                       {item.action && (
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!item.disabled && item.action) item.action();
@@ -178,8 +178,8 @@ export const SettingsPage: React.FC = () => {
             ) : (
               <div className="flex flex-col gap-2">
                 {section.items.map((item, j) => (
-                  <div 
-                    key={j} 
+                  <div
+                    key={j}
                     onClick={(!item.disabled && item.action) ? item.action : undefined}
                     className={`card flex items-center justify-between group active:bg-brand-cream/10 transition-colors ${item.action && !item.disabled ? 'cursor-pointer' : 'opacity-70 grayscale-[0.5]'}`}
                   >
@@ -193,7 +193,7 @@ export const SettingsPage: React.FC = () => {
                       </div>
                     </div>
                     {item.action && (
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!item.disabled && item.action) item.action();
@@ -214,7 +214,7 @@ export const SettingsPage: React.FC = () => {
 
       {/* Main Logout Button */}
       <div className="flex flex-col mt-4">
-        <button 
+        <button
           onClick={logout}
           className="flex items-center justify-center gap-2 p-4 border-2 border-red-100 text-red-600 font-bold rounded-md active:bg-red-50 transition-colors"
         >
