@@ -9,8 +9,8 @@ import {
   calculateCustomerRetentionRate,
   calculateAverageCustomerOrders,
   findTopCustomer
-} from '@shared/utils/front-end-calculations/customerGeneralAnalytics'
-import { formatNumber, formatPercentage } from '@shared/utils/front-end-calculations/formatters'
+} from '@shared/utils/customerGeneralAnalytics'
+import { formatNumber, formatPercentage } from '@shared/utils/formatters'
 
 interface CustomerSummaryProps {
   customers: Customer[]

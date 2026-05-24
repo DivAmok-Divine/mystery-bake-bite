@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   Plus, Package, Pencil, Trash2, 
   Search, BarChart3,
-  Minus, ShoppingCart, Eye
+  ShoppingCart, Eye
 } from 'lucide-react'
 
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,18 +14,26 @@ import { PantryForm } from './PantryForm'
 import { PantryDetails } from './PantryDetails'
 import { PantrySummary } from './PantrySummary'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilter'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { PantryItem } from '@backend/lib/db'
-import { getAdjustedStock, calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
+import { calculateStockProgress } from '@shared/utils/pantryAnalytics'
+import { toggleFilterValue } from '@shared/utils/commonUtils'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
+import { useAuth } from '../../auth/api/AuthContext'
 
 export const PantryList: React.FC = () => {
+  const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const { pantryItems, pantryHistory, isLoading, deletePantryItem, updateStock } = usePantry()
 
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [activeCategories, setActiveCategories] = useState<string[]>(['All'])
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
   const [showFilters, setShowFilters] = useState(false)
@@ -37,66 +46,62 @@ export const PantryList: React.FC = () => {
   const [isRestockForm, setIsRestockForm] = useState(false)
   const [isNavigatingFromDetails, setIsNavigatingFromDetails] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const [summaryView, setSummaryView] = useState<'main' | 'details' | 'edit'>('main')
   const [selectedItem, setSelectedItem] = useState<PantryItem | null>(null)
 
-  const [itemToDelete, setItemToDelete] = useState<number | null>(null)
+  const currentSelectedItem = useMemo(() => {
+    if (!selectedItem?.id) return selectedItem
+    return pantryItems.find(i => i.id === selectedItem.id) || selectedItem
+  }, [selectedItem, pantryItems])
+
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const categories = ['All', 'Ingredients', 'Packaging', 'Cleaning', 'Toppings', 'Other']
   const statuses = ['All', 'In Stock', 'Low Stock', 'Out of Stock']
 
 
-  const filteredItems = (pantryItems || []).filter(item => {
-    if (!item) return false
-    const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
-    return matchesSearch && matchesCategory && matchesStatus
-  })
+  const baseFilteredItems = useMemo(() => {
+    return (pantryItems || []).filter(item => {
+      if (!item) return false
+      return (item.name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+             (item.category || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    })
+  }, [pantryItems, debouncedSearchQuery])
 
+  const filteredItems = useMemo(() => {
+    return baseFilteredItems.filter(item => {
+      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
+      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
+      return matchesCategory && matchesStatus
+    })
+  }, [baseFilteredItems, activeCategories, activeStatuses])
 
   const getCategoryCount = (cat: string) => {
-    if (!pantryItems) return 0
-    return pantryItems.filter(item => {
-      const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
-      const matchesThisCategory = cat === 'All' || item.category === cat
-      return matchesSearch && matchesStatus && matchesThisCategory
-    }).length
+    const baseItemsForCategory = baseFilteredItems.filter(item => 
+      activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
+    )
+    if (cat === 'All') return baseItemsForCategory.length
+    return baseItemsForCategory.filter(item => item.category === cat).length
   }
 
-
   const toggleCategory = (cat: string) => {
-    if (cat === 'All') { setActiveCategories(['All']); return }
-    let newCats = activeCategories.includes('All') ? [] : [...activeCategories]
-    newCats = newCats.includes(cat) ? newCats.filter(c => c !== cat) : [...newCats, cat]
-    setActiveCategories(newCats.length === 0 ? ['All'] : newCats)
+    setActiveCategories(toggleFilterValue(activeCategories, cat))
   }
 
   const toggleStatus = (stat: string) => {
-    if (stat === 'All') { setActiveStatuses(['All']); return }
-    let newStats = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    newStats = newStats.includes(stat) ? newStats.filter(s => s !== stat) : [...newStats, stat]
-    setActiveStatuses(newStats.length === 0 ? ['All'] : newStats)
+    setActiveStatuses(toggleFilterValue(activeStatuses, stat))
   }
 
   const getStatusCount = (stat: string) => {
-    if (!pantryItems) return 0
-    return pantryItems.filter(item => {
-      const matchesSearch = (item.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(item.category)
-      const matchesThisStatus = stat === 'All' || (item.status || 'In Stock') === stat
-      return matchesSearch && matchesCategory && matchesThisStatus
-    }).length
+    const baseItemsForStatus = baseFilteredItems.filter(item => 
+      activeCategories.includes('All') || activeCategories.includes(item.category)
+    )
+    if (stat === 'All') return baseItemsForStatus.length
+    return baseItemsForStatus.filter(item => (item.status || 'In Stock') === stat).length
   }
 
-  const handleAdjustStock = (e: React.MouseEvent, item: PantryItem, delta: number) => {
-    e.stopPropagation()
-    const newStock = getAdjustedStock(item.currentStock || 0, delta)
-    if (item.id) updateStock(item.id, newStock)
-  }
 
   const navigateItem = (direction: 'next' | 'prev', list: PantryItem[] = filteredItems) => {
     if (!selectedItem || list.length <= 1) return
@@ -123,12 +128,14 @@ export const PantryList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button
-              onClick={() => setIsAddingItem(true)}
-              className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:pantry') && (
+              <button
+                onClick={() => setIsAddingItem(true)}
+                className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -180,16 +187,14 @@ export const PantryList: React.FC = () => {
 
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-28 glass-skeleton rounded-md" />)}
-        </div>
+        <ListSkeleton count={4} className="h-28" />
       ) : (pantryItems || []).length === 0 ? (
         <EmptyState
           icon={ShoppingCart}
           title="Your pantry is empty"
           description="Add your flour, sugar, and other supplies to start tracking."
-          actionLabel="+ Add first item"
-          onAction={() => setIsAddingItem(true)}
+          actionLabel={hasPermission('create:pantry') ? "+ Add first item" : undefined}
+          onAction={hasPermission('create:pantry') ? () => setIsAddingItem(true) : undefined}
         />
       ) : filteredItems.length === 0 ? (
         <EmptyState
@@ -208,7 +213,11 @@ export const PantryList: React.FC = () => {
               />
 
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
+                <div 
+                  onClick={() => { setSelectedItem(item); setIsViewingItem(true) }}
+                  className="flex items-center gap-3 min-w-0 cursor-pointer active:scale-[0.98] hover:opacity-80 transition-all"
+                  title="View Item Details"
+                >
                   <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
                     item.status === 'Low Stock' ? 'bg-amber-100 text-amber-600' :
                     item.status === 'Out of Stock' ? 'bg-rose-100 text-rose-600' :
@@ -223,14 +232,17 @@ export const PantryList: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1 bg-brand-surface border border-brand-chocolate/10 rounded-md p-0.5 shadow-sm">
-                    <button onClick={(e) => handleAdjustStock(e, item, -1)} className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors">
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-10 text-center text-xs font-bold text-brand-chocolate">{item.currentStock || 0}</span>
-                    <button onClick={(e) => handleAdjustStock(e, item, 1)} className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors">
-                      <Plus size={12} />
-                    </button>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <QuantityStepper
+                      value={item.currentStock || 0}
+                      onChange={(qty) => {
+                        if (item.id) updateStock(item.id, qty)
+                      }}
+                      size="sm"
+                      min={0}
+                      max={item.maxStock !== undefined ? item.maxStock : item.currentStock}
+                      disableIncrement={!hasPermission('edit:pantry')}
+                    />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <StatusBadge status={item.status || 'In Stock'} className="text-[10px] px-2 py-0.5" />
@@ -247,26 +259,30 @@ export const PantryList: React.FC = () => {
                   >
                     <Eye size={14} />
                   </button>
-                  <button
-                    onClick={() => { 
-                      setSelectedItem(item); 
-                      setIsRestockForm(false); 
-                      setIsEditingItem(true) 
-                    }}
-                    className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => item.id && setItemToDelete(item.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {hasPermission('edit:pantry') && (
+                    <button
+                      onClick={() => { 
+                        setSelectedItem(item); 
+                        setIsRestockForm(false); 
+                        setIsEditingItem(true) 
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                  {hasPermission('delete:pantry') && (
+                    <button
+                      onClick={() => item.id && setItemToDelete(item.id)}
+                      className="w-7 h-7 flex items-center justify-center rounded text-red-400/50 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[10px] font-bold text-emerald-600 leading-none">{formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
-                  {item.status !== 'In Stock' && (
+                  {hasPermission('create:pantry') && item.status !== 'In Stock' && (
                     <button 
                       onClick={() => {
                         setSelectedItem(item)
@@ -277,7 +293,6 @@ export const PantryList: React.FC = () => {
                     >
                       Restock
                     </button>
-
                   )}
                 </div>
               </div>
@@ -289,11 +304,22 @@ export const PantryList: React.FC = () => {
       {/* Add Item */}
       <BottomSheet
         isOpen={isAddingItem}
-        onClose={() => setIsAddingItem(false)}
+        onClose={() => {
+          setIsAddingItem(false)
+          setIsFormDirty(false)
+        }}
         title="Add to Pantry"
         subtitle="Keep track of your bakery supplies"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <PantryForm onSuccess={() => setIsAddingItem(false)} />
+        <PantryForm 
+          onSuccess={() => {
+            setIsAddingItem(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       <BottomSheet
@@ -305,9 +331,9 @@ export const PantryList: React.FC = () => {
         title="Item details"
         subtitle="Stock levels, value and history"
       >
-        {selectedItem && (
+        {currentSelectedItem && (
           <PantryDetails 
-            item={selectedItem} 
+            item={currentSelectedItem} 
             onRestock={() => {
               setIsViewingItem(false)
               setIsRestockForm(true)
@@ -325,6 +351,7 @@ export const PantryList: React.FC = () => {
           setSelectedItem(null);
           setIsRestockForm(false);
           setIsNavigatingFromDetails(false);
+          setIsFormDirty(false);
         }}
         onBack={isNavigatingFromDetails ? () => {
           setIsEditingItem(false);
@@ -332,17 +359,18 @@ export const PantryList: React.FC = () => {
           setIsNavigatingFromDetails(false);
           setIsViewingItem(true);
         } : undefined}
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedItem?.id}
         title={isRestockForm ? "Restock Item" : "Edit Pantry Item"}
         subtitle={isRestockForm ? "Restock ingredient stock" : "Update ingredient stock and details"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        {selectedItem && (
+        {currentSelectedItem && (
           <PantryForm
             onSuccess={() => { 
               setIsEditingItem(false); 
               setIsRestockForm(false);
+              setIsFormDirty(false);
               if (isNavigatingFromDetails) {
                 setIsViewingItem(true);
                 setIsNavigatingFromDetails(false);
@@ -350,8 +378,9 @@ export const PantryList: React.FC = () => {
                 setSelectedItem(null);
               }
             }}
-            initialData={selectedItem}
+            initialData={currentSelectedItem}
             isRestock={isRestockForm}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -408,18 +437,18 @@ export const PantryList: React.FC = () => {
             />
           )}
 
-          {summaryView === 'details' && selectedItem && (
+          {summaryView === 'details' && currentSelectedItem && (
             <PantryDetails 
-              item={selectedItem} 
+              item={currentSelectedItem} 
               onRestock={() => setSummaryView('edit')}
             />
           )}
 
 
-          {summaryView === 'edit' && selectedItem && (
+          {summaryView === 'edit' && currentSelectedItem && (
             <PantryForm
               onSuccess={() => setSummaryView('details')}
-              initialData={selectedItem}
+              initialData={currentSelectedItem}
               isRestock={true}
             />
           )}
@@ -430,8 +459,23 @@ export const PantryList: React.FC = () => {
       <ConfirmModal
         isOpen={itemToDelete !== null}
         onClose={() => setItemToDelete(null)}
-        onConfirm={() => {
-          if (itemToDelete) deletePantryItem(itemToDelete)
+        onConfirm={async () => {
+          if (itemToDelete) {
+            const item = pantryItems.find(i => i.id === itemToDelete)
+            try {
+              await deletePantryItem(itemToDelete)
+              notify({
+                type: 'delete',
+                title: 'Ingredient Removed',
+                message: `Ingredient ${item?.name || ''} successfully removed!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to remove ${item?.name || 'ingredient'}.`
+              })
+            }
+          }
           setItemToDelete(null)
         }}
         title="Remove item?"

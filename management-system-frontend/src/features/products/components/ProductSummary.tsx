@@ -6,8 +6,8 @@ import {
   calculateProductPricing, 
   getTopPricedProduct, 
   getPopularProductCategory 
-} from '@shared/utils/front-end-calculations/productAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+} from '@shared/utils/productAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface ProductSummaryProps {
   products: Product[]

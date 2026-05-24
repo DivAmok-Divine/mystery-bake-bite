@@ -2,29 +2,33 @@ import React, { useState } from 'react'
 import { 
   Package, Tag, Hash, 
   AlertCircle, ChevronDown, 
-  Minus, Plus, Wallet, StickyNote 
+  Plus, Wallet, StickyNote 
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { usePantry } from '../api/usePantry'
 import { useClickOutside } from '@backend/lib/hooks'
 import type { PantryItem } from '@backend/lib/db'
-import { determinePantryStatus } from '@shared/utils/front-end-calculations/pantryAnalytics'
-import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
-import { clamp } from '@shared/utils/front-end-calculations/commonUtils'
+import { determinePantryStatus } from '@shared/utils/pantryAnalytics'
+import { formatNumber } from '@shared/utils/formatters'
+import { sanitizeInput } from '@shared/utils/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-
+import { useNotification } from '@shared/ui/molecules/Notification'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
 
 interface PantryFormProps {
   onSuccess: () => void
   initialData?: PantryItem
   isRestock?: boolean
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 
-export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, isRestock }) => {
-  const { pantryItems, addPantryItem, updatePantryItem } = usePantry()
+export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, isRestock, onDirtyChange }) => {
+  const { notify } = useNotification()
+  const { pantryItems, addPantryItem, updatePantryItem, updateStock } = usePantry()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
+  const isEditing = !!initialData && !isRestock
   
   const [formData, setFormData] = useState({
 
@@ -54,15 +58,37 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
     parseFloat(formData.lastPrice) === i.lastPrice
   )
 
-  const hasChanges = initialData ? (
-    formData.name.trim() !== initialData.name.trim() ||
-    formData.category !== initialData.category ||
-    Number(formData.currentStock) !== Number(initialData.currentStock) ||
-    Number(formData.minStock) !== Number(initialData.minStock) ||
-    formData.unit !== initialData.unit ||
-    formatNumber(parseFloat(formData.lastPrice)) !== formatNumber(initialData.lastPrice || 0) ||
-    (formData.notes || '').trim() !== (initialData.notes || '').trim()
-  ) : true
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    return (
+      formData.name.trim() !== initialData.name.trim() ||
+      formData.category !== initialData.category ||
+      Number(formData.currentStock) !== Number(initialData.currentStock) ||
+      Number(formData.minStock) !== Number(initialData.minStock) ||
+      formData.unit !== initialData.unit ||
+      formatNumber(parseFloat(formData.lastPrice)) !== formatNumber(initialData.lastPrice || 0) ||
+      (formData.notes || '').trim() !== (initialData.notes || '').trim()
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.category !== '' ||
+      formData.currentStock !== 0 ||
+      formData.minStock !== 5 ||
+      formData.unit !== 'kg' ||
+      formData.lastPrice !== '0.00' ||
+      formData.notes.trim() !== ''
+    )
+  }, [initialData, hasChanges, formData])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
 
   const validate = () => {
@@ -81,18 +107,56 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
 
     const itemData = {
       ...formData,
+      name: sanitizeInput(formData.name),
+      category: sanitizeInput(formData.category),
+      unit: sanitizeInput(formData.unit),
+      notes: sanitizeInput(formData.notes),
       lastPrice: parseFloat(formData.lastPrice) || 0,
+      maxStock: formData.currentStock,
       status,
       updatedAt: new Date(),
       createdAt: initialData?.createdAt || new Date()
     }
 
-    if (initialData?.id) {
-      await updatePantryItem({ id: initialData.id, changes: itemData })
-    } else {
-      await addPantryItem(itemData)
+    try {
+      if (initialData?.id) {
+        if (isRestock) {
+          // If it is a Restock transaction, update metadata and record stock via updateStock so a Restock history entry is created!
+          await updatePantryItem({ 
+            id: initialData.id, 
+            changes: {
+              lastPrice: parseFloat(formData.lastPrice) || 0,
+              notes: sanitizeInput(formData.notes),
+              maxStock: Math.max(initialData.maxStock || 0, formData.currentStock)
+            }
+          })
+          await updateStock(initialData.id, formData.currentStock, 'Restock')
+        } else {
+          // Normal Edit
+          await updatePantryItem({ id: initialData.id, changes: itemData })
+        }
+        notify({
+          type: 'update',
+          title: isRestock ? 'Ingredient Restocked' : 'Ingredient Updated',
+          message: isRestock 
+            ? `Successfully restocked ${itemData.name}!` 
+            : `Ingredient ${itemData.name} successfully updated!`
+        })
+      } else {
+        await addPantryItem(itemData)
+        notify({
+          type: 'add',
+          title: 'Ingredient Added',
+          message: `Ingredient ${itemData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save ingredient ${itemData.name}.`
+      })
     }
-    onSuccess()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +166,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 pb-6">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {/* Name */}
       <div className="flex flex-col gap-2">
         <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
@@ -114,7 +178,10 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
           disabled={isRestock}
           className={`w-full p-4 h-14 bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 focus:ring-brand-chocolate ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, name: e.target.value })
+            if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+          }}
         />
         {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
       </div>
@@ -136,6 +203,8 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
             </span>
             <ChevronDown size={14} className="opacity-40" />
           </button>
+          {errors.category && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.category}</p>}
+          
           {isCategoryDropdownOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-brand-surface border border-brand-chocolate/10 rounded-md shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150">
               {categories.map(cat => (
@@ -145,6 +214,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
                   onClick={() => {
                     setFormData({ ...formData, category: cat })
                     setIsCategoryDropdownOpen(false)
+                    if (errors.category) setErrors(prev => ({ ...prev, category: '' }))
                   }}
                   className="w-full text-left px-4 py-3 text-xs font-bold hover:bg-brand-dough/10 border-b border-brand-chocolate/5 last:border-0"
                 >
@@ -196,30 +266,14 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
           <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
             <Plus size={14} /> Current Stock ({formData.unit})
           </label>
-          <div className="flex items-center gap-1 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md p-1 h-14">
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, currentStock: clamp(formData.currentStock - 1, 0, 99999) })}
-              className="w-10 h-full bg-brand-chocolate/5 text-brand-chocolate rounded flex items-center justify-center"
-            >
-              <Minus size={16} />
-            </button>
-            <input
-              type="number"
-              placeholder="0"
-              className="w-full bg-transparent text-center font-bold text-sm focus:outline-none"
-              value={formData.currentStock === 0 ? '' : formData.currentStock}
-              onChange={(e) => setFormData({ ...formData, currentStock: parseInt(e.target.value) || 0 })}
-            />
-
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, currentStock: formData.currentStock + 1 })}
-              className="w-10 h-full bg-brand-chocolate text-white rounded flex items-center justify-center"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
+          <QuantityStepper
+            value={formData.currentStock}
+            onChange={(qty) => setFormData({ ...formData, currentStock: qty })}
+            min={0}
+            max={99999}
+            disabled={isEditing}
+            className={`w-full h-14 bg-brand-cream/10 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          />
         </div>
 
         {/* Min Stock */}
@@ -227,34 +281,14 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
           <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
             <AlertCircle size={14} /> Low Stock Alert at
           </label>
-          <div className={`flex items-center gap-1 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md p-1 h-14 ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            <button
-              type="button"
-              disabled={isRestock}
-              onClick={() => setFormData({ ...formData, minStock: clamp(formData.minStock - 1, 0, 99999) })}
-              className="w-10 h-full bg-brand-chocolate/5 text-brand-chocolate rounded flex items-center justify-center"
-            >
-              <Minus size={16} />
-            </button>
-            <input
-              type="number"
-              placeholder="0"
-              disabled={isRestock}
-              className="w-full bg-transparent text-center font-bold text-sm focus:outline-none"
-              value={formData.minStock === 0 ? '' : formData.minStock}
-              onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
-            />
-            <button
-              type="button"
-              disabled={isRestock}
-              onClick={() => setFormData({ ...formData, minStock: formData.minStock + 1 })}
-              className="w-10 h-full bg-brand-chocolate text-white rounded flex items-center justify-center"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-
-
+          <QuantityStepper
+            value={formData.minStock}
+            onChange={(qty) => setFormData({ ...formData, minStock: qty })}
+            min={0}
+            max={99999}
+            disabled={isRestock}
+            className={`w-full h-14 bg-brand-cream/10 ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
+          />
         </div>
       </div>
 
@@ -263,48 +297,16 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
           <Wallet size={14} /> Last Purchase Price (GH₵)
         </label>
-        <div className="flex items-center gap-1 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md p-1 h-14">
-          <button
-            type="button"
-            onClick={() => {
-              const current = parseFloat(formData.lastPrice) || 0
-              if (current > 0) setFormData({ ...formData, lastPrice: formatNumber(current - 1) })
-            }}
-            className="w-10 h-full bg-brand-chocolate/5 text-brand-chocolate rounded flex items-center justify-center active:bg-brand-chocolate/10"
-          >
-            <Minus size={16} />
-          </button>
-          <input
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            className="w-full bg-transparent text-center font-bold text-sm focus:outline-none text-emerald-600"
-            value={formData.lastPrice}
-            onChange={(e) => setFormData({ ...formData, lastPrice: e.target.value })}
-            onFocus={(e) => {
-              if (e.target.value === '0.00' || e.target.value === '0') {
-                setFormData({ ...formData, lastPrice: '' })
-              }
-            }}
-            onBlur={(e) => {
-              if (e.target.value === '') {
-                setFormData({ ...formData, lastPrice: '0.00' })
-              } else if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                setFormData({ ...formData, lastPrice: formatNumber(parseFloat(e.target.value) || 0) })
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => {
-              const current = parseFloat(formData.lastPrice) || 0
-              setFormData({ ...formData, lastPrice: formatNumber(current + 1) })
-            }}
-            className="w-10 h-full bg-brand-chocolate text-white rounded flex items-center justify-center active:bg-brand-chocolate/90"
-          >
-            <Plus size={16} />
-          </button>
-        </div>
+        <QuantityStepper
+          value={parseFloat(formData.lastPrice) || 0}
+          onChange={(price) => setFormData({ ...formData, lastPrice: formatNumber(price) })}
+          min={0}
+          step={1}
+          isDecimal={true}
+          placeholder="0.00"
+          disabled={isEditing}
+          className={`w-full h-14 bg-brand-cream/10 font-bold text-emerald-600 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+        />
 
       </div>
 
@@ -337,13 +339,15 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         </motion.div>
       )}
 
-      <button 
-        type="submit" 
-        disabled={!hasChanges}
-        className={`btn-primary w-full h-14 text-lg shadow-xl mt-4 rounded-md transition-all ${isDuplicate ? 'bg-amber-600 hover:bg-amber-700' : ''} ${!hasChanges ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
-      >
-        {isRestock ? 'Restock' : initialData ? 'Update Pantry Item' : isDuplicate ? 'Merge to Existing Record' : 'Save to Pantry'}
-      </button>
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
+        <button 
+          type="submit" 
+          disabled={!hasChanges}
+          className={`btn-primary w-full h-14 text-lg shadow-xl rounded-md transition-all ${isDuplicate ? 'bg-amber-600 hover:bg-amber-700' : ''} ${!hasChanges ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+        >
+          {isRestock ? 'Restock' : initialData ? 'Update Pantry Item' : isDuplicate ? 'Merge to Existing Record' : 'Save to Pantry'}
+        </button>
+      </div>
 
       <ConfirmModal
         isOpen={showConfirm}
@@ -360,6 +364,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
         }
         confirmText={isRestock ? 'Yes, Restock' : initialData ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
 
     </form>

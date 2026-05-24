@@ -4,6 +4,7 @@
   "private": true,
   "main": "./lib/db.ts",
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "clsx": "^2.1.1",
     "dexie": "^4.4.2",
     "dexie-react-hooks": "^4.4.0",

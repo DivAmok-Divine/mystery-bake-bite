@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { useProducts } from '../api/useProducts'
 import { useCategories } from '../api/useCategories'
 import { 
@@ -12,7 +13,9 @@ import { ProductForm } from './ProductForm'
 import { ProductDetails } from './ProductDetails'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import type { Product } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
+import { useNotification } from '@shared/ui/molecules/Notification'
+import { useAuth } from '../../auth/api/AuthContext'
 
 
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
@@ -21,9 +24,12 @@ import { ProductSummary } from './ProductSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 
 export const ProductList: React.FC = () => {
+  const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const { products, isLoading, deleteProduct } = useProducts()
   const { categories } = useCategories()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddFormOpen, setIsAddFormOpen] = useState(false)
   const [activeTabs, setActiveTabs] = useState<string[]>(['All'])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -31,10 +37,11 @@ export const ProductList: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isViewingProduct, setIsViewingProduct] = useState(false)
   const [isEditingProduct, setIsEditingProduct] = useState(false)
-  const [productToDelete, setProductToDelete] = useState<number | null>(null)
+  const [productToDelete, setProductToDelete] = useState<string | null>(null)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
 
   const handleView = (product: Product) => {
@@ -68,19 +75,22 @@ export const ProductList: React.FC = () => {
     setActiveTabs(newTabs)
   }
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesTab = activeTabs.includes('All') || activeTabs.includes(p.category)
-    return matchesSearch && matchesTab
-  })
+  const baseFilteredProducts = useMemo(() => {
+    return products.filter(p => 
+      p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    )
+  }, [products, debouncedSearchQuery])
+
+  const filteredProducts = useMemo(() => {
+    return baseFilteredProducts.filter(p => {
+      return activeTabs.includes('All') || activeTabs.includes(p.category)
+    })
+  }, [baseFilteredProducts, activeTabs])
 
   // Get count for each category
   const getCategoryCount = (category: string) => {
-    const baseItems = products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    if (category === 'All') return baseItems.length
-    return baseItems.filter(p => p.category === category).length
+    if (category === 'All') return baseFilteredProducts.length
+    return baseFilteredProducts.filter(p => p.category === category).length
   }
 
   // Dynamic category tabs
@@ -110,12 +120,14 @@ export const ProductList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddFormOpen(true)}
-              className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:products') && (
+              <button 
+                onClick={() => setIsAddFormOpen(true)}
+                className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -176,8 +188,8 @@ export const ProductList: React.FC = () => {
           image="/logo-clean.png"
           title="No bites found yet"
           description="Tap the button below to add your first creation"
-          actionLabel="+ Add first bite"
-          onAction={() => setIsAddFormOpen(true)}
+          actionLabel={hasPermission('create:products') ? "+ Add first bite" : undefined}
+          onAction={hasPermission('create:products') ? () => setIsAddFormOpen(true) : undefined}
         />
       ) : filteredProducts.length === 0 ? (
         <EmptyState
@@ -190,7 +202,10 @@ export const ProductList: React.FC = () => {
           {filteredProducts.map((product) => (
             viewMode === 'grid' ? (
               <div key={product.id} className="group flex flex-col gap-3">
-                <div className="aspect-square bg-brand-cream/20 flex items-center justify-center relative overflow-hidden rounded-lg group-hover:bg-brand-dough/10 transition-colors">
+                <div 
+                  onClick={() => handleView(product)}
+                  className="aspect-square bg-brand-cream/20 flex items-center justify-center relative overflow-hidden rounded-lg group-hover:bg-brand-dough/10 transition-colors cursor-pointer"
+                >
                   {(product.images?.[0] || product.image) ? (
                     <img src={product.images?.[0] || product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
@@ -208,23 +223,27 @@ export const ProductList: React.FC = () => {
 
                   <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-20">
                     <button 
-                      onClick={() => handleView(product)}
+                      onClick={(e) => { e.stopPropagation(); handleView(product); }}
                       className="w-7 h-7 bg-white text-brand-chocolate/80 active:text-brand-chocolate rounded-md flex items-center justify-center shadow-md active:scale-90"
                     >
                       <Eye size={14} />
                     </button>
-                    <button 
-                      onClick={() => handleEdit(product)}
-                      className="w-7 h-7 bg-white text-brand-chocolate/80 active:text-brand-chocolate rounded-md flex items-center justify-center shadow-md active:scale-90"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button 
-                      onClick={() => product.id && setProductToDelete(product.id)}
-                      className="w-7 h-7 bg-white text-red-500 rounded-md flex items-center justify-center shadow-md active:scale-90"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {hasPermission('edit:products') && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
+                        className="w-7 h-7 bg-white text-brand-chocolate/80 active:text-brand-chocolate rounded-md flex items-center justify-center shadow-md active:scale-90"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    {hasPermission('delete:products') && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); product.id && setProductToDelete(product.id); }}
+                        className="w-7 h-7 bg-white text-red-500 rounded-md flex items-center justify-center shadow-md active:scale-90"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="px-1">
@@ -234,7 +253,10 @@ export const ProductList: React.FC = () => {
               </div>
             ) : (
               <div key={product.id} className="group card flex items-center gap-4 p-3 active:scale-[0.98] transition-transform">
-                <div className="w-16 h-16 bg-brand-cream/20 rounded-md overflow-hidden shrink-0 relative flex items-center justify-center">
+                <div 
+                  onClick={() => handleView(product)}
+                  className="w-16 h-16 bg-brand-cream/20 rounded-md overflow-hidden shrink-0 relative flex items-center justify-center cursor-pointer hover:opacity-80 active:scale-95 transition-all"
+                >
                   {(product.images?.[0] || product.image) ? (
                     <img src={product.images?.[0] || product.image} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
@@ -242,7 +264,10 @@ export const ProductList: React.FC = () => {
                   )}
                 </div>
                 
-                <div className="flex-1 min-w-0">
+                <div 
+                  onClick={() => handleView(product)}
+                  className="flex-1 min-w-0 cursor-pointer hover:opacity-80 active:scale-[0.99] transition-all"
+                >
                   <span className="text-[10px] font-bold text-brand-dough">{product.category}</span>
                   <h3 className="text-sm font-bold text-brand-chocolate line-clamp-1 leading-tight">{product.name}</h3>
                   <p className="text-xs font-medium text-brand-chocolate/60">{formatCurrency(product.price)}</p>
@@ -255,18 +280,22 @@ export const ProductList: React.FC = () => {
                   >
                     <Eye size={16} />
                   </button>
-                  <button 
-                    onClick={() => handleEdit(product)}
-                    className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button 
-                    onClick={() => product.id && setProductToDelete(product.id)}
-                    className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {hasPermission('edit:products') && (
+                    <button 
+                      onClick={() => handleEdit(product)}
+                      className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  {hasPermission('delete:products') && (
+                    <button 
+                      onClick={() => product.id && setProductToDelete(product.id)}
+                      className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -276,11 +305,22 @@ export const ProductList: React.FC = () => {
 
       <BottomSheet
         isOpen={isAddFormOpen}
-        onClose={() => setIsAddFormOpen(false)}
+        onClose={() => {
+          setIsAddFormOpen(false)
+          setIsFormDirty(false)
+        }}
         title="Add New Bite"
         subtitle="Create a new product for your menu"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <ProductForm onSuccess={() => setIsAddFormOpen(false)} />
+        <ProductForm 
+          onSuccess={() => {
+            setIsAddFormOpen(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       {/* View Details */}
@@ -314,12 +354,13 @@ export const ProductList: React.FC = () => {
         onClose={() => {
           setIsEditingProduct(false)
           setSelectedProduct(null)
+          setIsFormDirty(false)
         }} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedProduct?.id}
         title="Edit Bite"
         subtitle="Modify product details and pricing"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
 
         {selectedProduct && (
@@ -327,8 +368,10 @@ export const ProductList: React.FC = () => {
             onSuccess={() => {
               setIsEditingProduct(false)
               setSelectedProduct(null)
+              setIsFormDirty(false)
             }} 
             initialData={selectedProduct}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -337,8 +380,24 @@ export const ProductList: React.FC = () => {
       <ConfirmModal
         isOpen={productToDelete !== null}
         onClose={() => setProductToDelete(null)}
-        onConfirm={() => {
-          if (productToDelete) deleteProduct(productToDelete)
+        onConfirm={async () => {
+          if (productToDelete) {
+            const product = products.find(p => p.id === productToDelete)
+            try {
+              await deleteProduct(productToDelete)
+              notify({
+                type: 'delete',
+                title: 'Bite Removed',
+                message: `Bite ${product?.name || ''} successfully deleted!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to delete bite ${product?.name || ''}.`
+              })
+            }
+          }
+          setProductToDelete(null)
         }}
         title="Delete Bite?"
         message={

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   ShoppingBag, Eye, 
   Pencil, Plus, Search, BarChart3,
@@ -11,7 +12,7 @@ import { useAuth } from '../../auth/api/AuthContext'
 import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
 import { OrderForm } from './OrderForm'
 import type { Order } from '@backend/lib/db'
-import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
+import { formatNumber } from '@shared/utils/formatters.ts'
 import { OrderDetails } from './OrderDetails.tsx'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilter'
@@ -19,12 +20,17 @@ import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { OrderSummary } from './OrderSummary.tsx'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { toggleFilterValue } from '@shared/utils/commonUtils.ts'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
-import { DateRangePicker, type DateRange } from '@shared/ui/molecules/DateRangePicker'
+import { DateRangePicker, type DateRange } from '@shared/ui/molecules/calender/DateRangePicker.tsx'
 
 export const OrderList: React.FC = () => {
-  const { isAdmin } = useAuth()
+  const { notify } = useNotification()
+  const { isAdmin, hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingOrder, setIsAddingOrder] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isViewingOrder, setIsViewingOrder] = useState(false)
@@ -32,6 +38,7 @@ export const OrderList: React.FC = () => {
   const [isAddingCustomerInOrder, setIsAddingCustomerInOrder] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
   
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
   const [orderToComplete, setOrderToComplete] = useState<Order | null>(null)
@@ -51,30 +58,13 @@ export const OrderList: React.FC = () => {
   }, [dateRange.start])
 
   const toggleStatus = (status: string) => {
-    if (status === 'All') {
-      setActiveStatuses(['All'])
-      return
-    }
-
-    let newStatuses = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    
-    if (newStatuses.includes(status)) {
-      newStatuses = newStatuses.filter(s => s !== status)
-    } else {
-      newStatuses.push(status)
-    }
-
-    if (newStatuses.length === 0) {
-      newStatuses = ['All']
-    }
-    
-    setActiveStatuses(newStatuses)
+    setActiveStatuses(toggleFilterValue(activeStatuses, status))
   }
 
-  const getStatusCount = (status: string) => {
-    const baseItems = orders.filter(o => {
-      const matchesSearch = o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          o.items.toLowerCase().includes(searchQuery.toLowerCase())
+  const baseFilteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchesSearch = o.customerName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                          o.items.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       
       let matchesDate = true
       if (timeView === 'Today') {
@@ -89,40 +79,25 @@ export const OrderList: React.FC = () => {
           end: endOfDay(dateRange.end) 
         })
       } else if (dateRange.start) {
-        matchesDate = new Date(o.createdAt) >= startOfDay(dateRange.start)
+        matchesDate = isSameDay(new Date(o.createdAt), dateRange.start)
       }
       
       return matchesSearch && matchesDate
     })
-    if (status === 'All') return baseItems.length
-    return baseItems.filter(o => o.status === status).length
+  }, [orders, debouncedSearchQuery, timeView, dateRange])
+
+  const getStatusCount = (status: string) => {
+    if (status === 'All') return baseFilteredOrders.length
+    return baseFilteredOrders.filter(o => o.status === status).length
   }
 
   const displayStatuses = ['All', 'Pending', 'Completed', 'Cancelled']
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.items.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(order.status)
-    
-    let matchesDate = true
-    if (timeView === 'Today') {
-      const today = new Date()
-      matchesDate = isWithinInterval(new Date(order.createdAt), { 
-        start: startOfDay(today), 
-        end: endOfDay(today) 
-      })
-    } else if (dateRange.start && dateRange.end) {
-      matchesDate = isWithinInterval(new Date(order.createdAt), { 
-        start: startOfDay(dateRange.start), 
-        end: endOfDay(dateRange.end) 
-      })
-    } else if (dateRange.start) {
-      matchesDate = isSameDay(new Date(order.createdAt), dateRange.start)
-    }
-    
-    return matchesSearch && matchesStatus && matchesDate
-  })
+  const filteredOrders = useMemo(() => {
+    return baseFilteredOrders.filter(order => {
+      return activeStatuses.includes('All') || activeStatuses.includes(order.status)
+    })
+  }, [baseFilteredOrders, activeStatuses])
 
 
   const handleViewDetails = (order: Order) => {
@@ -179,12 +154,14 @@ export const OrderList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddingOrder(true)}
-              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:orders') && (
+              <button 
+                onClick={() => setIsAddingOrder(true)}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -353,31 +330,41 @@ export const OrderList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-32 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={3} className="h-32" />
       ) : orders.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
           title="No orders yet"
           description="Start your first bake bite by tapping the button below."
-          actionLabel="+ Add first order"
-          onAction={() => setIsAddingOrder(true)}
+          actionLabel={hasPermission('create:orders') ? "+ Add first order" : undefined}
+          onAction={hasPermission('create:orders') ? () => setIsAddingOrder(true) : undefined}
         />
       ) : filteredOrders.length === 0 ? (
         <EmptyState
-          icon={Search}
-          title="No results found"
-          description={`We couldn't find anything matching "${searchQuery}"`}
+          icon={searchQuery ? Search : ShoppingBag}
+          title={searchQuery ? "No results found" : "No orders found"}
+          description={
+            searchQuery 
+              ? `We couldn't find anything matching "${searchQuery}"` 
+              : "No orders match the selected filters or date range."
+          }
+          actionLabel={!searchQuery && hasPermission('create:orders') ? "+ Add an order" : undefined}
+          onAction={!searchQuery && hasPermission('create:orders') ? () => setIsAddingOrder(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">
           {filteredOrders.map((order) => (
             <div key={order.id} className="card flex flex-col gap-3 group">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg leading-tight">{order.customerName}</h3>
-                  <p className="text-sm text-brand-chocolate/60 line-clamp-2">{order.items}</p>
+                <div className="flex-1 min-w-0">
+                  <div 
+                    onClick={() => handleViewDetails(order)}
+                    className="cursor-pointer hover:opacity-80 active:scale-[0.99] transition-all"
+                    title="View Order Details"
+                  >
+                    <h3 className="text-lg leading-tight">{order.customerName}</h3>
+                    <p className="text-sm text-brand-chocolate/60 line-clamp-2">{order.items}</p>
+                  </div>
                   <div className="flex items-center gap-3 mt-2">
                     <button 
                       onClick={() => handleViewDetails(order)}
@@ -388,26 +375,32 @@ export const OrderList: React.FC = () => {
                     </button>
                     {order.status === 'Pending' && (
                       <>
-                        <button 
-                          onClick={() => handleEditOrder(order)}
-                          className="text-brand-chocolate/40 hover:text-brand-chocolate transition-colors"
-                          title="Edit Order"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <div className="w-px h-3 bg-brand-chocolate/10 mx-1" />
-                        <button 
-                          onClick={() => setOrderToComplete(order)}
-                          className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
-                        >
-                          Mark Done
-                        </button>
-                        <button 
-                          onClick={() => setOrderToCancel(order)}
-                          className="text-[10px] text-red-500 font-bold underline whitespace-nowrap"
-                        >
-                          Cancel Order
-                        </button>
+                        {hasPermission('edit:orders') && (
+                          <button 
+                            onClick={() => handleEditOrder(order)}
+                            className="text-brand-chocolate/40 hover:text-brand-chocolate transition-colors"
+                            title="Edit Order"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                        )}
+                        {(hasPermission('edit:orders') || hasPermission('delete:orders')) && <div className="w-px h-3 bg-brand-chocolate/10 mx-1" />}
+                        {hasPermission('edit:orders') && (
+                          <button 
+                            onClick={() => setOrderToComplete(order)}
+                            className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
+                          >
+                            Mark Done
+                          </button>
+                        )}
+                        {hasPermission('delete:orders') && (
+                          <button 
+                            onClick={() => setOrderToCancel(order)}
+                            className="text-[10px] text-red-500 font-bold underline whitespace-nowrap ml-2"
+                          >
+                            Cancel Order
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -469,18 +462,23 @@ export const OrderList: React.FC = () => {
         onClose={() => {
           setIsAddingOrder(false)
           setIsAddingCustomerInOrder(false)
+          setIsFormDirty(false)
         }} 
         onBack={isAddingCustomerInOrder ? () => setIsAddingCustomerInOrder(false) : undefined}
         title={isAddingCustomerInOrder ? "Add New Customer" : "New Order"}
         subtitle={isAddingCustomerInOrder ? "Enter details for your new bite lover" : "Create a new order for your bakery"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         <OrderForm 
           onSuccess={() => {
             setIsAddingOrder(false)
             setIsAddingCustomerInOrder(false)
+            setIsFormDirty(false)
           }} 
           isAddingNewCustomer={isAddingCustomerInOrder}
           setIsAddingNewCustomer={setIsAddingCustomerInOrder}
+          onDirtyChange={setIsFormDirty}
         />
       </BottomSheet>
 
@@ -517,13 +515,14 @@ export const OrderList: React.FC = () => {
           setIsEditingOrder(false)
           setSelectedOrder(null)
           setIsAddingCustomerInOrder(false)
+          setIsFormDirty(false)
         }} 
         onBack={isAddingCustomerInOrder ? () => setIsAddingCustomerInOrder(false) : undefined}
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedOrder?.id}
         title={isAddingCustomerInOrder ? "Add New Customer" : "Edit Order"}
         subtitle={isAddingCustomerInOrder ? "Enter details for your new bite lover" : "Modify order details"}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         {selectedOrder && (
           <OrderForm 
@@ -531,10 +530,12 @@ export const OrderList: React.FC = () => {
               setIsEditingOrder(false)
               setSelectedOrder(null)
               setIsAddingCustomerInOrder(false)
+              setIsFormDirty(false)
             }} 
             initialData={selectedOrder}
             isAddingNewCustomer={isAddingCustomerInOrder}
             setIsAddingNewCustomer={setIsAddingCustomerInOrder}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -543,12 +544,24 @@ export const OrderList: React.FC = () => {
       <ConfirmModal 
         isOpen={!!orderToComplete}
         onClose={() => setOrderToComplete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (orderToComplete?.id) {
-            updateOrder({ id: orderToComplete.id, changes: { status: 'Completed' } })
-            // Update selectedOrder if it's the one being completed
-            if (selectedOrder?.id === orderToComplete.id) {
-              setSelectedOrder({ ...selectedOrder, status: 'Completed' })
+            try {
+              await updateOrder({ id: orderToComplete.id, changes: { status: 'Completed' } })
+              notify({
+                type: 'add',
+                title: 'Order Delivered',
+                message: `Order ${orderToComplete.orderNumber} successfully completed!`
+              })
+              // Update selectedOrder if it's the one being completed
+              if (selectedOrder?.id === orderToComplete.id) {
+                setSelectedOrder({ ...selectedOrder, status: 'Completed' })
+              }
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to complete order ${orderToComplete.orderNumber}.`
+              })
             }
             setOrderToComplete(null)
           }
@@ -561,18 +574,31 @@ export const OrderList: React.FC = () => {
         }
         confirmText="Yes, Mark as Done"
         isDestructive={false}
+        watermarkType="complete"
       />
 
       {/* Cancel Confirmation */}
       <ConfirmModal 
         isOpen={!!orderToCancel}
         onClose={() => setOrderToCancel(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (orderToCancel?.id) {
-            updateOrder({ id: orderToCancel.id, changes: { status: 'Cancelled' } })
-            // Update selectedOrder if it's the one being cancelled
-            if (selectedOrder?.id === orderToCancel.id) {
-              setSelectedOrder({ ...selectedOrder, status: 'Cancelled' })
+            try {
+              await updateOrder({ id: orderToCancel.id, changes: { status: 'Cancelled' } })
+              notify({
+                type: 'delete',
+                title: 'Order Cancelled',
+                message: `Order ${orderToCancel.orderNumber} successfully cancelled!`
+              })
+              // Update selectedOrder if it's the one being cancelled
+              if (selectedOrder?.id === orderToCancel.id) {
+                setSelectedOrder({ ...selectedOrder, status: 'Cancelled' })
+              }
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to cancel order ${orderToCancel.orderNumber}.`
+              })
             }
             setOrderToCancel(null)
           }
@@ -586,6 +612,7 @@ export const OrderList: React.FC = () => {
         }
         confirmText="Yes, Cancel Order"
         isDestructive={true}
+        watermarkType="cancel"
       />
       <BottomSheet 
         isOpen={isShowingSummary} 

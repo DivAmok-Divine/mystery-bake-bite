@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useOrders } from '../api/useOrders'
 import { useCustomers } from '../../customers/api/useCustomers'
 import { useProducts } from '../../products/api/useProducts'
 import { 
   Calendar as CalendarIcon, User, 
   StickyNote, Search, Plus, 
-  Minus, ChevronDown, Wallet, ShoppingCart, Trash2
+  ChevronDown, Wallet, ShoppingCart, Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { CustomerForm } from '../../customers/components/CustomerForm'
-import { Calendar } from '@shared/ui/molecules/Calendar'
+import { DateTimeCalendar } from '@shared/ui/molecules/calender/DateTimeCalendar'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { useClickOutside } from '@backend/lib/hooks'
-import { useTopBuyers } from '@shared/utils/front-end-calculations/topCustomerAnalytics'
-import { calculateOrderTotal } from '@shared/utils/front-end-calculations/orderAnalytics'
-import { formatCurrency, formatNumber } from '@shared/utils/front-end-calculations/formatters'
-import { generateId, clamp } from '@shared/utils/front-end-calculations/commonUtils'
+import { useTopBuyers } from '@shared/utils/topCustomerAnalytics'
+import { calculateOrderTotal, parseOrderItemsDescription } from '@shared/utils/orderAnalytics'
+import { formatCurrency, formatNumber } from '@shared/utils/formatters'
+import { generateId, clamp, sanitizeInput } from '@shared/utils/commonUtils'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
 
 
 import { db, type Order } from '@backend/lib/db'
@@ -26,10 +28,11 @@ interface OrderFormProps {
   initialData?: Order
   isAddingNewCustomer: boolean
   setIsAddingNewCustomer: (val: boolean) => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 interface OrderItem {
-  productId: number
+  productId: string
   name: string
   quantity: number
   price: number
@@ -39,8 +42,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   onSuccess, 
   initialData, 
   isAddingNewCustomer, 
-  setIsAddingNewCustomer 
+  setIsAddingNewCustomer,
+  onDirtyChange
 }) => {
+  const { notify } = useNotification()
   const { orders, addOrder, updateOrder } = useOrders()
   const { customers } = useCustomers()
   const { products } = useProducts()
@@ -49,6 +54,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false)
   const [productSearch, setProductSearch] = useState('')
+  const [isSearchProductFocused, setIsSearchProductFocused] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -56,30 +62,19 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const customerDropdownRef = useClickOutside(() => setIsDropdownOpen(false))
   const productDropdownRef = useClickOutside(() => setIsProductDropdownOpen(false))
 
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+  }, [customers, customerSearch])
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+  }, [products, productSearch])
+
   
   // Try to parse initial items if editing
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>(() => {
     if (!initialData || !products.length) return []
-    // This is a basic parser for "1x Name, 2x Other"
-    const items: OrderItem[] = []
-    const parts = initialData.items.split(', ')
-    parts.forEach(p => {
-      const match = p.match(/(\d+)x (.+)/)
-      if (match) {
-        const qty = parseInt(match[1])
-        const name = match[2]
-        const prod = products.find(pr => pr.name === name)
-        if (prod) {
-          items.push({
-            productId: prod.id!,
-            name: prod.name,
-            quantity: qty,
-            price: prod.price
-          })
-        }
-      }
-    })
-    return items
+    return parseOrderItemsDescription(initialData.items, products)
   })
 
   const [formData, setFormData] = useState({
@@ -94,24 +89,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   // Update selectedItems when products load if editing
   useEffect(() => {
     if (initialData && products.length > 0 && selectedItems.length === 0) {
-      const items: OrderItem[] = []
-      const parts = initialData.items.split(', ')
-      parts.forEach(p => {
-        const match = p.match(/(\d+)x (.+)/)
-        if (match) {
-          const qty = parseInt(match[1])
-          const name = match[2]
-          const prod = products.find(pr => pr.name === name)
-          if (prod) {
-            items.push({
-              productId: prod.id!,
-              name: prod.name,
-              quantity: qty,
-              price: prod.price
-            })
-          }
-        }
-      })
+      const items = parseOrderItemsDescription(initialData.items, products)
       if (items.length > 0) setSelectedItems(items)
     }
   }, [products, initialData])
@@ -171,13 +149,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     if (errors.items) setErrors({ ...errors, items: '' })
   }
 
-  const handleUpdateQuantity = (productId: number, newQty: number) => {
+  const handleUpdateQuantity = (productId: string, newQty: number) => {
     setSelectedItems(selectedItems.map(item => 
       item.productId === productId ? { ...item, quantity: clamp(newQty, 0, 99) } : item
     ))
   }
 
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItem = (productId: string) => {
     setSelectedItems(selectedItems.filter(item => item.productId !== productId))
   }
 
@@ -186,45 +164,115 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }
 
   const handleSave = async () => {
-    if (initialData) {
-      updateOrder({
-        id: initialData.id!,
-        changes: {
-          ...formData,
-          orderNumber: initialData.orderNumber,
-          customerId: Number(formData.customerId),
-          amount: parseFloat(formData.amount),
-          deadline: new Date(formData.deadline)
-        }
-      })
-    } else {
-      // Guaranteed unique order number check
-      let uniqueOrderNumber = generateOrderNumber()
-      let isUnique = false
-      let attempts = 0
-      
-      while (!isUnique && attempts < 10) {
-        const existing = await db.orders.where('orderNumber').equals(uniqueOrderNumber).count()
-        if (existing === 0) {
-          isUnique = true
-        } else {
-          uniqueOrderNumber = generateOrderNumber()
-          attempts++
-        }
-      }
+    const sanitizedData = {
+      ...formData,
+      customerName: sanitizeInput(formData.customerName),
+      notes: sanitizeInput(formData.notes),
+      customerId: formData.customerId,
+      amount: parseFloat(formData.amount),
+      deadline: new Date(formData.deadline)
+    }
 
-      addOrder({
-        ...formData,
-        orderNumber: uniqueOrderNumber,
-        customerId: Number(formData.customerId),
-        amount: parseFloat(formData.amount),
-        deadline: new Date(formData.deadline),
-        status: 'Pending',
-        createdAt: new Date()
+    try {
+      if (initialData) {
+        await updateOrder({
+          id: initialData.id!,
+          changes: {
+            ...sanitizedData,
+            orderNumber: initialData.orderNumber
+          }
+        })
+        notify({
+          type: 'update',
+          title: 'Order Updated',
+          message: `Order ${initialData.orderNumber} successfully updated!`
+        })
+      } else {
+        // Guaranteed unique order number check
+        let uniqueOrderNumber = generateOrderNumber()
+        let isUnique = false
+        let attempts = 0
+        
+        while (!isUnique && attempts < 10) {
+          const existing = await db.orders.where('orderNumber').equals(uniqueOrderNumber).count()
+          if (existing === 0) {
+            isUnique = true
+          } else {
+            uniqueOrderNumber = generateOrderNumber()
+            attempts++
+          }
+        }
+
+        await addOrder({
+          ...sanitizedData,
+          orderNumber: uniqueOrderNumber,
+          status: 'Pending',
+          createdAt: new Date()
+        })
+        notify({
+          type: 'add',
+          title: 'Order Created',
+          message: `Order for ${sanitizedData.customerName} successfully created!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save order.`
       })
     }
-    onSuccess()
   }
+
+  const hasChanges = useMemo(() => {
+    if (!initialData) return true
+
+    // 1. Compare Customer IDs
+    if (formData.customerId !== initialData.customerId.toString()) return true
+
+    // 2. Compare Notes null-safely
+    if ((formData.notes || '') !== (initialData.notes || '')) return true
+
+    // 3. Compare Deadlines timestamp-safely (handles string vs Date safely)
+    try {
+      const initialTime = new Date(initialData.deadline).getTime()
+      const currentTime = new Date(formData.deadline).getTime()
+      if (initialTime !== currentTime) return true
+    } catch (e) {
+      if (formData.deadline !== initialData.deadline.toISOString()) return true
+    }
+
+    // 4. Compare Items (parsed correctly to avoid formatting/ordering discrepancies)
+    if (!products.length) return false // Wait for products to load before determining changes
+    
+    const parsedInitialItems = parseOrderItemsDescription(initialData.items, products)
+
+    const currentValidItems = selectedItems.filter(item => item.quantity > 0)
+    if (currentValidItems.length !== parsedInitialItems.length) return true
+
+    for (const item of currentValidItems) {
+      const initialMatch = parsedInitialItems.find(pi => pi.productId === item.productId)
+      if (!initialMatch || initialMatch.quantity !== item.quantity) return true
+    }
+
+    return false
+  }, [initialData, formData.customerId, formData.notes, formData.deadline, selectedItems, products])
+
+  const isDirty = useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.customerId !== '' ||
+      formData.notes.trim() !== '' ||
+      formData.deadline !== '' ||
+      selectedItems.some(item => item.quantity > 0)
+    )
+  }, [initialData, hasChanges, formData, selectedItems])
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -246,7 +294,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       {/* Customer Search */}
       <div className="flex flex-col gap-2 relative border-brand-chocolate/10 border-b pb-4" ref={customerDropdownRef}>
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
@@ -271,7 +319,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               <div className="p-1">
                 {topBuyers.length > 0 ? (
                   <>
-                    <p className="text-[10px] font-bold text-brand-chocolate/30 px-3 py-2 tracking-widest">Top Buyers</p>
+                    <p className="text-[11px] font-bold text-brand-chocolate/50 px-3 py-2 tracking-widest">Top Buyers</p>
                     {topBuyers.map(tb => (
                       <button
                         key={tb.customer.id}
@@ -297,10 +345,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               </div>
             ) : (
               <div className="p-1">
-                {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length > 0 ? (
-                  customers
-                    .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                    .map(customer => (
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map(customer => (
                       <button
                         key={customer.id}
                         type="button"
@@ -355,21 +401,25 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         {isProductDropdownOpen && (
           <div className="bg-brand-dough/5 border border-brand-chocolate/10 rounded-md p-2 flex flex-col gap-2 animate-in slide-in-from-top-2">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-chocolate" size={14} />
+              <Search 
+                className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 pointer-events-none ${isSearchProductFocused || productSearch ? 'text-brand-chocolate' : 'text-brand-chocolate/40'}`} 
+                size={14} 
+                strokeWidth={isSearchProductFocused || productSearch ? 2.5 : 2}
+              />
               <input
                 type="text"
                 placeholder="search product..."
                 className="w-full pl-10 pr-4 py-2.5 bg-brand-surface border border-brand-chocolate/10 rounded text-xs font-bold focus:outline-none focus:ring-1 focus:ring-brand-dough shadow-sm"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
+                onFocus={() => setIsSearchProductFocused(true)}
+                onBlur={() => setIsSearchProductFocused(false)}
               />
             </div>
 
             <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1 pr-1 custom-scrollbar">
               <p className="text-[10px] font-bold text-brand-chocolate/40 px-2 pt-1 pb-1 ">Select a product</p>
-              {products
-                .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
-                .map(p => (
+              {filteredProducts.map(p => (
                   <button
                     key={p.id}
                     type="button"
@@ -380,7 +430,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                     <span className="text-[10px] font-medium text-brand-chocolate/40 group-hover:text-brand-chocolate">{formatCurrency(p.price)}</span>
                   </button>
                 ))}
-              {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+              {filteredProducts.length === 0 && (
                 <p className="text-[10px] text-center py-6 text-brand-chocolate/40 font-medium italic">No products found</p>
               )}
             </div>
@@ -407,30 +457,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   <span className="text-[10px] text-brand-chocolate/40">{formatCurrency(item.price)} / each</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-brand-surface border border-brand-chocolate/10 rounded-md p-0.5">
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
-                      disabled={item.quantity <= 0}
-                      className="w-6 h-6 flex items-center justify-center text-brand-chocolate hover:bg-brand-dough/10 rounded transition-colors disabled:opacity-20"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <input 
-                      type="number" 
-                      value={item.quantity === 0 ? '' : item.quantity}
-                      onChange={(e) => handleUpdateQuantity(item.productId, parseInt(e.target.value) || 0)}
-                      className="w-8 text-center text-xs font-bold text-brand-chocolate bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="0"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
-                      className="w-6 h-6 flex items-center justify-center bg-brand-chocolate text-white rounded transition-transform active:scale-90"
-                    >
-                      <Plus size={12} />
-                    </button>
-                  </div>
+                  <QuantityStepper
+                    value={item.quantity}
+                    onChange={(qty) => handleUpdateQuantity(item.productId, qty)}
+                    size="sm"
+                    min={0}
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(item.productId)}
@@ -471,15 +503,23 @@ export const OrderForm: React.FC<OrderFormProps> = ({
             }}
             className={`w-full px-3 h-14 text-xs font-medium flex items-center justify-between bg-brand-cream/10 border ${errors.deadline ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md focus:outline-none`}
           >
-            {formData.deadline ? format(new Date(formData.deadline), 'MMM d, yyyy') : 'Pick date'}
+            {formData.deadline ? (
+              <div className="flex flex-col items-start justify-center gap-0.5 h-full text-left">
+                <span className="text-sm font-bold text-brand-chocolate">{format(new Date(formData.deadline), 'MMM d, yyyy')}</span>
+                <span className="text-[10px] text-brand-chocolate/65 font-medium">{format(new Date(formData.deadline), 'hh:mm a')}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-brand-chocolate/40">Pick date & time</span>
+            )}
             <ChevronDown size={14} className="opacity-40" />
           </button>
+          {errors.deadline && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.deadline}</p>}
         </div>
       </div>
 
       {/* Calendar */}
       {isCalendarOpen && (
-        <Calendar
+        <DateTimeCalendar
           title="Select Deadline"
           value={formData.deadline}
           onChange={(iso) => {
@@ -503,15 +543,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         />
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5 mt-4">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!initialData && 
-            formData.customerId === initialData.customerId.toString() &&
-            formData.deadline === initialData.deadline.toISOString() &&
-            formData.notes === initialData.notes &&
-            formData.items === initialData.items
-          }
+          disabled={!!initialData && !hasChanges}
           className="btn-primary w-full h-14 text-lg shadow-xl rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {initialData ? 'Update Order' : 'Create Order'}
@@ -529,6 +564,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         }
         confirmText={initialData ? 'Yes, Update' : 'Yes, Create'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )

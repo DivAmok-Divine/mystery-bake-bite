@@ -6,16 +6,51 @@ import {
 } from 'lucide-react'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 import type { PantryItem } from '@backend/lib/db'
-
-import { calculateStockProgress } from '@shared/utils/front-end-calculations/pantryAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { calculateStockProgress } from '@shared/utils/pantryAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
+import { useAuth } from '../../auth/api/AuthContext'
 
 interface PantryDetailsProps {
-  item: PantryItem
+  item?: PantryItem
+  isLoading?: boolean
   onRestock?: () => void
 }
 
-export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, onRestock }) => {
+export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, isLoading, onRestock }) => {
+  const { hasPermission } = useAuth()
+  if (isLoading || !item) {
+    return (
+      <div className="flex flex-col gap-5 pb-8 animate-pulse">
+        {/* Hero Stock Banner Pulse */}
+        <div className="p-5 rounded-md flex items-center gap-4 bg-brand-cream/10 border border-brand-chocolate/5">
+          <div className="w-14 h-14 rounded-md bg-brand-chocolate/10 shrink-0" />
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="h-6 w-40 bg-brand-chocolate/10 rounded" />
+            <div className="flex gap-2">
+              <div className="h-4 w-12 bg-brand-chocolate/10 rounded" />
+              <div className="h-4 w-16 bg-brand-chocolate/10 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stock Level Pulse */}
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between">
+            <div className="h-3 w-16 bg-brand-chocolate/10 rounded" />
+            <div className="h-3 w-20 bg-brand-chocolate/10 rounded" />
+          </div>
+          <div className="h-2.5 bg-brand-chocolate/10 rounded-full" />
+          <div className="h-3 w-36 bg-brand-chocolate/10 rounded" />
+        </div>
+
+        {/* Info Grid Pulse */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 bg-brand-cream/10 rounded-md h-24" />
+          <div className="p-4 bg-brand-cream/10 rounded-md h-24" />
+        </div>
+      </div>
+    )
+  }
 
   const stockPercent = calculateStockProgress(item.currentStock || 0, item.minStock || 1)
 
@@ -71,7 +106,7 @@ export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, onRestock })
           <p className="text-[10px] text-brand-chocolate/30">
             Minimum threshold: {item.minStock ?? 0} {item.unit}
           </p>
-          {onRestock && (
+          {onRestock && hasPermission('create:pantry') && (
             <button 
               onClick={onRestock}
               className="text-[10px] font-bold text-orange-600 underline"
@@ -93,15 +128,33 @@ export const PantryDetails: React.FC<PantryDetailsProps> = ({ item, onRestock })
           <span className="text-[10px] text-brand-chocolate/40">{item.unit}</span>
         </div>
 
-        <div className="p-4 bg-emerald-50 rounded-md flex flex-col gap-1 border border-emerald-100">
-          <div className="flex items-center gap-1.5 text-emerald-600/60 mb-1">
+        <div className={`p-4 rounded-md flex flex-col gap-1 ${
+          item.status === 'Out of Stock' ? 'bg-rose-50 border border-rose-100' :
+          item.status === 'Low Stock'    ? 'bg-amber-50 border border-amber-100' :
+                                           'bg-emerald-50 border border-emerald-100'
+        }`}>
+          <div className={`flex items-center gap-1.5 mb-1 ${
+            item.status === 'Out of Stock' ? 'text-rose-600/60' :
+            item.status === 'Low Stock'    ? 'text-amber-600/70' :
+                                             'text-emerald-600/60'
+          }`}>
             <Wallet size={13} />
             <span className="text-[10px] font-bold">Stock value</span>
           </div>
-          <span className="text-2xl font-display text-emerald-700 leading-none">
+          <span className={`text-2xl font-display leading-none ${
+            item.status === 'Out of Stock' ? 'text-rose-700' :
+            item.status === 'Low Stock'    ? 'text-amber-800' :
+                                             'text-emerald-700'
+          }`}>
             {formatCurrency(totalValue)}
           </span>
-          <span className="text-[10px] text-emerald-600/50">@ {formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
+          <span className={`text-[10px] ${
+            item.status === 'Out of Stock' ? 'text-rose-600/50' :
+            item.status === 'Low Stock'    ? 'text-amber-700/60' :
+                                             'text-emerald-600/50'
+          }`}>
+            @ {formatCurrency(item.lastPrice || 0)} / {item.unit}
+          </span>
         </div>
       </div>
 

@@ -2,8 +2,8 @@ import React from 'react'
 import { Wrench, CheckCircle2, AlertTriangle, XCircle, Tag, Wallet, TrendingUp } from 'lucide-react'
 import type { Equipment } from '@backend/lib/db'
 
-import { calculateEquipmentMetrics } from '@shared/utils/front-end-calculations/equipmentAnalytics'
-import { formatCurrency, formatPercentage } from '@shared/utils/front-end-calculations/formatters'
+import { calculateEquipmentMetrics } from '@shared/utils/equipmentAnalytics'
+import { formatCurrency, formatPercentage } from '@shared/utils/formatters'
 
 interface EquipmentSummaryProps {
   equipment: Equipment[]
