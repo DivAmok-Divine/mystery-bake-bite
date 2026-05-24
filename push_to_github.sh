@@ -5,7 +5,7 @@
 # Colors for a premium terminal look
 GOLD='\033[0;33m'
 CHOCOLATE='\033[0;34m'
-NC='\033[0m' # No Colors
+NC='\033[0m' # No Color
 
 echo -e "${CHOCOLATE}----------------------------------------${NC}"
 echo -e "${GOLD}   🥯 PUSHING MONOREPO TO GITHUB   ${NC}"
