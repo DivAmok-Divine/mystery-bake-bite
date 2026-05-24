@@ -4,11 +4,13 @@ import { Reorder } from 'framer-motion'
 import { Utensils, BookOpen, Clock, AlertCircle, Plus, X, Info, GripVertical } from 'lucide-react'
 import type { Recipe } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
-import { generateId } from '@shared/utils/front-end-calculations/commonUtils'
+import { generateId, sanitizeInput } from '@shared/utils/commonUtils.ts'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface RecipeFormProps {
   recipe?: Recipe
   onSuccess: () => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 interface ListItem {
@@ -16,7 +18,8 @@ interface ListItem {
   value: string
 }
 
-export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => {
+export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addRecipe, updateRecipe } = useRecipes()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -123,22 +126,83 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const recipeData = {
-      title: formData.title,
-      ingredients: ingredientsList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
-      method: methodList.filter(i => i.value.trim()).map(i => `• ${i.value}`).join('\n'),
-      notes: formData.notes.trim(),
+      title: sanitizeInput(formData.title),
+      ingredients: ingredientsList
+        .filter(i => i.value.trim())
+        .map(i => `• ${sanitizeInput(i.value)}`)
+        .join('\n'),
+      method: methodList
+        .filter(i => i.value.trim())
+        .map(i => `• ${sanitizeInput(i.value)}`)
+        .join('\n'),
+      notes: sanitizeInput(formData.notes),
       createdAt: recipe?.createdAt || new Date()
     }
 
-    if (recipe?.id) {
-      updateRecipe({ ...recipeData, id: recipe.id })
-    } else {
-      addRecipe(recipeData)
+    try {
+      if (recipe?.id) {
+        await updateRecipe({ ...recipeData, id: recipe.id })
+        notify({
+          type: 'update',
+          title: 'Recipe Updated',
+          message: `Recipe ${formData.title} successfully updated!`
+        })
+      } else {
+        await addRecipe(recipeData)
+        notify({
+          type: 'add',
+          title: 'Recipe Created',
+          message: `Recipe ${formData.title} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save recipe ${formData.title}.`
+      })
     }
-    onSuccess()
   }
+
+  const hasChanges = React.useMemo(() => {
+    if (!recipe) return true
+
+    // 1. Check title
+    if (formData.title.trim() !== recipe.title.trim()) return true
+
+    // 2. Check notes null-safely
+    if ((formData.notes || '').trim() !== (recipe.notes || '').trim()) return true
+
+    // 3. Check ingredients (compare normalized trimmed strings)
+    const currentIngredients = ingredientsList.map(i => i.value.trim()).filter(Boolean).join('\n')
+    const initialIngredients = recipe.ingredients.split('\n').map(i => i.replace('• ', '').trim()).filter(Boolean).join('\n')
+    if (currentIngredients !== initialIngredients) return true
+
+    // 4. Check method steps
+    const currentMethod = methodList.map(m => m.value.trim()).filter(Boolean).join('\n')
+    const initialMethod = recipe.method.split('\n').map(m => m.replace('• ', '').trim()).filter(Boolean).join('\n')
+    if (currentMethod !== initialMethod) return true
+
+    return false
+  }, [recipe, formData.title, formData.notes, ingredientsList, methodList])
+
+  const isDirty = React.useMemo(() => {
+    if (recipe) {
+      return hasChanges
+    }
+    return (
+      formData.title.trim() !== '' ||
+      formData.notes.trim() !== '' ||
+      ingredientsList.some(i => i.value.trim() !== '') ||
+      methodList.some(m => m.value.trim() !== '')
+    )
+  }, [recipe, hasChanges, formData, ingredientsList, methodList])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -147,7 +211,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
           <BookOpen size={14} /> Recipe Title
@@ -334,15 +398,10 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
         />
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-2 pb-2 z-10 border-t border-brand-chocolate/5">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!recipe && 
-            formData.title === recipe.title && 
-            formData.notes === (recipe.notes || '') &&
-            ingredientsList.filter(i => i.value.trim()).join('\n') === recipe.ingredients.split('\n').map(i => i.replace('• ', '')).filter(i => i.trim()).join('\n') &&
-            methodList.filter(m => m.value.trim()).join('\n') === recipe.method.split('\n').map(m => m.replace('• ', '')).filter(m => m.trim()).join('\n')
-          }
+          disabled={!!recipe && !hasChanges}
           className="btn-primary w-full bg-feature-recipes hover:bg-feature-recipes/90 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {recipe ? 'Update Recipe' : 'Save Recipe'}
@@ -360,6 +419,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess }) => 
         }
         confirmText={recipe ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )

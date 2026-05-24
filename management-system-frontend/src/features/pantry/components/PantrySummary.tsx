@@ -12,8 +12,8 @@ import {
   calculateMonthlyUsage,
   getPantryStockHealth,
   getTopPantryCategory
-} from '@shared/utils/front-end-calculations/pantryAnalytics'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+} from '@shared/utils/pantryAnalytics'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface PantrySummaryProps {
   items: PantryItem[]
@@ -28,6 +28,8 @@ interface PantrySummaryProps {
 export const PantrySummary: React.FC<PantrySummaryProps> = ({ items, history, onRestock, onViewDetails }) => {
   const totalItems = items.length
   const { lowStock: lowStockItems, outOfStock: outOfStockItems } = getPantryStockHealth(items)
+  
+  const itemsNeeded = items.filter(i => i.status === 'Low Stock' || i.status === 'Out of Stock')
   
   const totalInvestment = calculatePantryValue(items)
   const monthlySpend = calculateMonthlySpend(history)
@@ -96,11 +98,11 @@ export const PantrySummary: React.FC<PantrySummaryProps> = ({ items, history, on
             <ShoppingCart size={12} /> Shopping List
           </h3>
           <span className="text-[10px] bg-brand-chocolate/5 text-brand-chocolate px-2 py-0.5 rounded-full font-bold">
-            {lowStockItems.length} items needed
+            {itemsNeeded.length} items needed
           </span>
         </div>
 
-        {lowStockItems.length === 0 ? (
+        {itemsNeeded.length === 0 ? (
           <div className="py-10 border-2 border-dashed border-brand-chocolate/10 rounded-md flex flex-col items-center justify-center text-brand-chocolate/20 text-center px-6">
             <CheckCircle2 size={32} strokeWidth={1} className="mb-2 text-emerald-500" />
             <p className="text-xs font-bold text-brand-chocolate/60">Your pantry is full!</p>
@@ -108,7 +110,7 @@ export const PantrySummary: React.FC<PantrySummaryProps> = ({ items, history, on
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {lowStockItems.map(item => (
+            {itemsNeeded.map(item => (
               <div key={item.id} className="flex items-center justify-between p-3 bg-brand-cream/10 border border-brand-chocolate/5 rounded-md">
                 <button 
                   onClick={() => onViewDetails(item)}

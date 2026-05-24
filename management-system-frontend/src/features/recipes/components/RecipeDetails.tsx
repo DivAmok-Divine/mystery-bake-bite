@@ -3,10 +3,39 @@ import { Utensils, Clock, Info } from 'lucide-react'
 import type { Recipe } from '@backend/lib/db'
 
 interface RecipeDetailsProps {
-  recipe: Recipe
+  recipe?: Recipe
+  isLoading?: boolean
 }
 
-export const RecipeDetails: React.FC<RecipeDetailsProps> = ({ recipe }) => {
+export const RecipeDetails: React.FC<RecipeDetailsProps> = ({ recipe, isLoading }) => {
+  if (isLoading || !recipe) {
+    return (
+      <div className="flex flex-col gap-8 pb-10 animate-pulse">
+        {/* Date Pulse */}
+        <div className="h-4 w-36 bg-brand-chocolate/10 rounded-md border-b border-brand-chocolate/5 pb-4" />
+
+        {/* Ingredients Pulse */}
+        <div className="flex flex-col gap-4">
+          <div className="h-4 w-28 bg-brand-chocolate/10 rounded-md" />
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-brand-cream/5 border border-brand-chocolate/5 rounded-md p-4 h-24" />
+        </div>
+
+        {/* Method Pulse */}
+        <div className="flex flex-col gap-4">
+          <div className="h-4 w-24 bg-brand-chocolate/10 rounded-md" />
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex gap-4">
+                <div className="w-6 h-6 rounded-full bg-brand-chocolate/10 shrink-0" />
+                <div className="h-5 flex-1 bg-brand-chocolate/10 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8 pb-10">
       <div className="flex items-center gap-2 text-xs font-bold text-brand-chocolate/30 border-b border-brand-chocolate/5 pb-4">

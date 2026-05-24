@@ -2,6 +2,8 @@ import React from 'react'
 import { motion, AnimatePresence, useDragControls } from 'framer-motion'
 import { XCloseBtn } from '../atoms/XCloseBtn'
 import { ArrowLeft } from 'lucide-react'
+import { ConfirmModal } from './ConfirmModal'
+import { useNotification } from './Notification'
 
 interface BottomSheetProps {
   isOpen: boolean
@@ -13,6 +15,8 @@ interface BottomSheetProps {
   onSwipeRight?: () => void
   children: React.ReactNode
   animationKey?: string | number
+  disableSwipe?: boolean
+  hasUnsavedChanges?: boolean
 }
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({ 
@@ -24,9 +28,20 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onSwipeLeft,
   onSwipeRight,
   children,
-  animationKey
+  animationKey,
+  disableSwipe = false,
+  hasUnsavedChanges = false
 }) => {
+  const { notify } = useNotification()
   const dragControls = useDragControls()
+  const [showDiscardConfirm, setShowDiscardConfirm] = React.useState(false)
+
+  // Reset discard confirm state when bottom sheet is opened/closed
+  React.useEffect(() => {
+    if (!isOpen) {
+      setShowDiscardConfirm(false)
+    }
+  }, [isOpen])
 
   // Lock body scroll when sheet is open
   React.useEffect(() => {
@@ -62,7 +77,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   // Manual close handler
   const handleManualClose = () => {
-    onClose()
+    if (hasUnsavedChanges) {
+      setShowDiscardConfirm(true)
+    } else {
+      onClose()
+    }
   }
 
   // Native swipe detection logic
@@ -71,10 +90,21 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const touchEndX = React.useRef(0)
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (disableSwipe) {
+      touchStartX.current = 0
+      return
+    }
+    const target = e.target as HTMLElement
+    // Ignore swipe gestures inside form tags, input elements, buttons, textareas, sliders or selects
+    if (target.closest('input, textarea, select, button, a, [role="button"], form, .no-swipe')) {
+      touchStartX.current = 0
+      return
+    }
     touchStartX.current = e.targetTouches[0].clientX
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (disableSwipe || touchStartX.current === 0) return
     touchEndX.current = e.changedTouches[0].clientX
     const swipeDistance = touchStartX.current - touchEndX.current
     const swipeThreshold = 50 // Minimum distance for a swipe
@@ -180,6 +210,26 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
               </AnimatePresence>
             </div>
           </motion.div>
+
+          <ConfirmModal
+            isOpen={showDiscardConfirm}
+            onClose={() => setShowDiscardConfirm(false)}
+            onConfirm={() => {
+              setShowDiscardConfirm(false)
+              notify({
+                type: 'delete',
+                title: 'Changes Discarded',
+                message: 'Your unsaved modifications were discarded.'
+              })
+              onClose()
+            }}
+            title="Discard Changes?"
+            message="Are you sure you want to discard your unsaved changes? Any entered data will be lost."
+            confirmText="Yes, Discard"
+            cancelText="Keep Editing"
+            isDestructive={true}
+            watermarkType="cancel"
+          />
         </>
       )}
     </AnimatePresence>

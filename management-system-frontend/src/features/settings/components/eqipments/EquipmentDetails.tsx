@@ -5,15 +5,44 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import type { Equipment } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface EquipmentDetailsProps {
-  equipment: Equipment
+  equipment?: Equipment
+  isLoading?: boolean
 }
 
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
 
-export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({ equipment }) => {
+export const EquipmentDetails: React.FC<EquipmentDetailsProps> = ({ equipment, isLoading }) => {
+  if (isLoading || !equipment) {
+    return (
+      <div className="flex flex-col gap-6 pb-6 animate-pulse">
+        {/* Header Info Pulse */}
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between gap-4">
+            <div className="flex-1 flex flex-col gap-2">
+              <div className="h-8 w-48 bg-brand-chocolate/10 rounded-md" />
+              <div className="h-6 w-24 bg-brand-chocolate/10 rounded-md mt-1" />
+            </div>
+            <div className="w-16 h-8 bg-brand-chocolate/10 rounded-md shrink-0" />
+          </div>
+        </div>
+
+        {/* Stats Grid Pulse */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-20 bg-brand-cream/10 rounded-xl border border-brand-chocolate/5 animate-pulse" />
+          <div className="h-20 bg-brand-cream/10 rounded-xl border border-brand-chocolate/5 animate-pulse" />
+        </div>
+
+        {/* Dates Pulse */}
+        <div className="flex flex-col gap-3">
+          <div className="h-4 w-20 bg-brand-chocolate/10 rounded animate-pulse" />
+          <div className="h-24 bg-brand-cream/10 rounded-xl border border-brand-chocolate/5 animate-pulse" />
+        </div>
+      </div>
+    )
+  }
 
   const safeFormatDate = (val: any, formatStr: string) => {
     if (!val) return 'N/A'

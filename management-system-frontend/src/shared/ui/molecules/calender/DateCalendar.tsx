@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import {
   format, addMonths, subMonths, startOfMonth,
   endOfMonth, startOfWeek, endOfWeek,
   isSameMonth, isSameDay, addDays
 } from 'date-fns'
-import { XCloseBtn } from '../atoms/XCloseBtn'
+import { XCloseBtn } from '../../atoms/XCloseBtn'
+import { MonthYearSelector, DAYS } from './MonthYearSelector'
 
 interface CalendarProps {
   title?: string
@@ -13,8 +14,6 @@ interface CalendarProps {
   onChange: (iso: string) => void
   onClose: () => void
 }
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export const Calendar: React.FC<CalendarProps> = ({
   title = 'Select Date',
@@ -25,6 +24,7 @@ export const Calendar: React.FC<CalendarProps> = ({
   const [currentMonth, setCurrentMonth] = useState(
     value ? new Date(value) : new Date()
   )
+  const [showSelector, setShowSelector] = useState(false)
 
   const handleSelectDay = (day: Date) => {
     const d = new Date(day)
@@ -64,17 +64,20 @@ export const Calendar: React.FC<CalendarProps> = ({
             type="button"
             onClick={() => handleSelectDay(currentDay)}
             className={`
-              h-12 w-full flex items-center justify-center text-sm rounded-md
-              transition-all relative
+              h-8 w-full flex items-center justify-center text-[10px]
+              rounded-md transition-all relative
               ${!isThisMonth ? 'opacity-20' : ''}
               ${isSelected
-                ? 'bg-brand-chocolate text-white font-bold shadow-lg scale-110 z-10'
-                : 'hover:bg-brand-dough/30 text-brand-chocolate/80'}
+                ? 'bg-brand-dough text-brand-chocolate font-bold z-10'
+                : isTodayDate
+                  ? 'bg-brand-chocolate text-white font-bold'
+                  : 'text-brand-chocolate/80'}
+              hover:bg-brand-chocolate/5
             `}
           >
             {format(day, 'd')}
-            {isTodayDate && !isSelected && (
-              <div className="absolute inset-0 border-2 border-brand-chocolate/20 rounded-md m-1 pointer-events-none" />
+            {isTodayDate && (
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-brand-chocolate z-20" />
             )}
           </button>
         )
@@ -92,8 +95,9 @@ export const Calendar: React.FC<CalendarProps> = ({
     return rows
   }
 
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-6 pb-20">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in"
@@ -101,7 +105,7 @@ export const Calendar: React.FC<CalendarProps> = ({
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-sm bg-brand-surface rounded-md shadow-2xl p-6 animate-in zoom-in-95 fade-in duration-200">
+      <div className="relative w-full max-w-sm bg-brand-surface rounded-md shadow-2xl p-6 animate-in slide-in-from-bottom-12 fade-in duration-300">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -118,9 +122,18 @@ export const Calendar: React.FC<CalendarProps> = ({
           >
             <ChevronLeft size={20} />
           </button>
-          <span className="text-md font-bold text-brand-chocolate">
-            {format(currentMonth, 'MMMM yyyy')}
-          </span>
+          
+          <button
+            type="button"
+            onClick={() => setShowSelector(!showSelector)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-brand-chocolate/5 rounded-md transition-colors group"
+          >
+            <span className="text-md font-bold text-brand-chocolate">
+              {format(currentMonth, 'MMMM yyyy')}
+            </span>
+            <ChevronDown size={14} className={`text-brand-chocolate/40 group-hover:text-brand-chocolate transition-transform ${showSelector ? 'rotate-180' : ''}`} />
+          </button>
+
           <button
             type="button"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
@@ -130,10 +143,19 @@ export const Calendar: React.FC<CalendarProps> = ({
           </button>
         </div>
 
+        {/* Quick Month/Year Selector Popup */}
+        <MonthYearSelector
+          isOpen={showSelector}
+          onClose={() => setShowSelector(false)}
+          currentMonth={currentMonth}
+          onChangeMonth={setCurrentMonth}
+          topOffsetClassName="top-[130px]"
+        />
+
         {/* Day Headers */}
         <div className="grid grid-cols-7 mb-2">
           {DAYS.map(d => (
-            <div key={d} className="text-sm font-bold text-center opacity-40">
+            <div key={d} className="text-[11px] font-bold text-center text-brand-chocolate/40">
               {d}
             </div>
           ))}

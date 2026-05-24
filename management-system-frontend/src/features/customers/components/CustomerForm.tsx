@@ -1,16 +1,19 @@
 import React, { useState } from 'react'
 import { useCustomers } from '../api/useCustomers.ts'
 import { User, Phone, Mail, MapPin, AlertCircle } from 'lucide-react'
-import { type Customer } from '@backend/lib/db'
-import { isValidGhanaPhone, formatPhone } from '@shared/utils/front-end-calculations/commonUtils'
+import type { Customer } from '@backend/lib/db'
+import { isValidGhanaPhone, formatPhone, sanitizeInput } from '@shared/utils/commonUtils.ts'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface CustomerFormProps {
   onSuccess: () => void
   initialData?: Customer
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
-export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialData }) => {
+export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addCustomer, updateCustomer } = useCustomers()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -35,22 +38,72 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
-    if (initialData?.id) {
-      updateCustomer({
-        id: initialData.id,
-        changes: formData
-      })
-    } else {
-      addCustomer({
-        ...formData,
-        totalOrders: 0,
-        status: 'Inactive',
-        createdAt: new Date()
+  const handleSave = async () => {
+    const sanitizedData = {
+      name: sanitizeInput(formData.name),
+      phone: sanitizeInput(formData.phone),
+      email: sanitizeInput(formData.email),
+      address: sanitizeInput(formData.address)
+    }
+
+    try {
+      if (initialData?.id) {
+        await updateCustomer({
+          id: initialData.id,
+          changes: sanitizedData
+        })
+        notify({
+          type: 'update',
+          title: 'Customer Updated',
+          message: `Customer ${sanitizedData.name} successfully updated!`
+        })
+      } else {
+        await addCustomer({
+          ...sanitizedData,
+          totalOrders: 0,
+          status: 'Inactive',
+          createdAt: new Date()
+        })
+        notify({
+          type: 'add',
+          title: 'Customer Created',
+          message: `Customer ${sanitizedData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save customer ${formData.name}.`
       })
     }
-    onSuccess()
   }
+
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    return (
+      formData.name.trim() !== (initialData.name || '').trim() ||
+      formData.phone.trim() !== (initialData.phone || '').trim() ||
+      formData.email.trim() !== (initialData.email || '').trim() ||
+      formData.address.trim() !== (initialData.address || '').trim()
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.phone.replace('+233', '').trim() !== '' ||
+      formData.email.trim() !== '' ||
+      formData.address.trim() !== ''
+    )
+  }, [initialData, hasChanges, formData])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,7 +147,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
             className="flex-1 bg-transparent border-none p-0 focus:outline-none text-brand-chocolate placeholder:text-brand-chocolate/20"
             value={formData.phone.replace('+233 ', '')}
             onChange={(e) => {
-              const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 10) // Only numbers, max 10
+              let val = e.target.value.replace(/[^0-9]/g, '')
+              const maxDigits = val.startsWith('0') ? 10 : 9
+              val = val.slice(0, maxDigits)
+              
               setFormData({ ...formData, phone: val ? formatPhone(val) : '' })
               if (errors.phone) setErrors({ ...errors, phone: '' })
             }}
@@ -141,15 +197,10 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         )}
       </div>
 
-      <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5">
+      <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
         <button 
           type="submit" 
-          disabled={!!initialData && JSON.stringify(formData) === JSON.stringify({
-            name: initialData?.name || '',
-            phone: initialData?.phone || '',
-            email: initialData?.email || '',
-            address: initialData?.address || ''
-          })}
+          disabled={!!initialData && !hasChanges}
           className="btn-primary w-full bg-feature-customers hover:bg-feature-customers/90 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {initialData?.id ? 'Update Customer' : 'Add Customer'}
@@ -167,6 +218,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         }
         confirmText={initialData?.id ? 'Yes, Update' : 'Yes, Add'}
         isDestructive={false}
+        watermarkType="update"
       />
     </form>
   )

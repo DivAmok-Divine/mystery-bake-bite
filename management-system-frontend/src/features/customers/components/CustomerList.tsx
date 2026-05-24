@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { Plus, User, Phone, Mail, Pencil, Trash2, Search, BarChart3, CheckCircle2, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCustomers } from '../api/useCustomers'
@@ -10,61 +11,54 @@ import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilte
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { CustomerSummary } from './CustomerSummary'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { toggleFilterValue, formatPhone } from '@shared/utils/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Customer } from '@backend/lib/db'
+import { useAuth } from '../../auth/api/AuthContext'
 
 
 export const CustomerList: React.FC = () => {
+  const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isEditingCustomer, setIsEditingCustomer] = useState(false)
   const [isViewingCustomer, setIsViewingCustomer] = useState(false)
-  const [customerToDelete, setCustomerToDelete] = useState<number | null>(null)
+  const [customerToDelete, setCustomerToDelete] = useState<string | null>(null)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [isNavigatingFromSummary, setIsNavigatingFromSummary] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const { customers, isLoading, deleteCustomer } = useCustomers()
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
 
   const toggleStatus = (status: string) => {
-    if (status === 'All') {
-      setActiveStatuses(['All'])
-      return
-    }
-
-    let newStatuses = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    
-    if (newStatuses.includes(status)) {
-      newStatuses = newStatuses.filter(s => s !== status)
-    } else {
-      newStatuses.push(status)
-    }
-
-    if (newStatuses.length === 0) {
-      newStatuses = ['All']
-    }
-    
-    setActiveStatuses(newStatuses)
+    setActiveStatuses(toggleFilterValue(activeStatuses, status))
   }
 
-  const getStatusCount = (status: string) => {
-    const baseItems = customers.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
+  const baseFilteredCustomers = useMemo(() => {
+    return customers.filter(c => 
+      c.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      c.phone.includes(debouncedSearchQuery)
     )
-    if (status === 'All') return baseItems.length
-    return baseItems.filter(c => c.status === status).length
+  }, [customers, debouncedSearchQuery])
+
+  const getStatusCount = (status: string) => {
+    if (status === 'All') return baseFilteredCustomers.length
+    return baseFilteredCustomers.filter(c => c.status === status).length
   }
 
   const displayStatuses = ['All', 'Active', 'Inactive']
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         customer.phone.includes(searchQuery)
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(customer.status)
-    return matchesSearch && matchesStatus
-  })
+  const filteredCustomers = useMemo(() => {
+    return baseFilteredCustomers.filter(customer => {
+      return activeStatuses.includes('All') || activeStatuses.includes(customer.status)
+    })
+  }, [baseFilteredCustomers, activeStatuses])
 
   const handleEdit = (customer: Customer) => {
     setSelectedCustomer(customer)
@@ -100,12 +94,14 @@ export const CustomerList: React.FC = () => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAddingCustomer(true)}
-              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:customers') && (
+              <button 
+                onClick={() => setIsAddingCustomer(true)}
+                className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -148,22 +144,26 @@ export const CustomerList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-24 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={3} className="h-24" />
       ) : customers.length === 0 ? (
         <EmptyState
           icon={User}
           title="No customers yet"
           description="Build your list of bite lovers by tapping the button below."
-          actionLabel="+ Add first customer"
-          onAction={() => setIsAddingCustomer(true)}
+          actionLabel={hasPermission('create:customers') ? "+ Add first customer" : undefined}
+          onAction={hasPermission('create:customers') ? () => setIsAddingCustomer(true) : undefined}
         />
       ) : filteredCustomers.length === 0 ? (
         <EmptyState
-          icon={Search}
-          title="No results found"
-          description={`We couldn't find any customers matching "${searchQuery}"`}
+          icon={searchQuery ? Search : User}
+          title={searchQuery ? "No results found" : "No customers found"}
+          description={
+            searchQuery 
+              ? `We couldn't find any customers matching "${searchQuery}"` 
+              : "No customers match the selected status filters."
+          }
+          actionLabel={!searchQuery && hasPermission('create:customers') ? "+ Add customer" : undefined}
+          onAction={!searchQuery && hasPermission('create:customers') ? () => setIsAddingCustomer(true) : undefined}
         />
       ) : (
         <div className="flex flex-col gap-4">
@@ -177,9 +177,13 @@ export const CustomerList: React.FC = () => {
                   <XCircle size={36} className="text-rose-600" />
                 )}
               </div>
-              <div className="w-12 h-12 rounded-md bg-brand-dough/20 flex items-center justify-center text-brand-chocolate shrink-0">
+              <button
+                type="button"
+                onClick={() => handleView(customer)}
+                className="w-12 h-12 rounded-md bg-brand-dough/20 flex items-center justify-center text-brand-chocolate shrink-0 hover:bg-brand-dough/30 active:scale-95 transition-all cursor-pointer"
+              >
                 <User size={24} />
-              </div>
+              </button>
               <div className="flex-1 min-w-0 pr-2">
                 <button 
                   onClick={() => handleView(customer)}
@@ -187,10 +191,10 @@ export const CustomerList: React.FC = () => {
                 >
                   <h3 className="font-bold truncate group-hover/name:text-brand-chocolate transition-colors">{customer.name}</h3>
                 </button>
-                <div className="flex items-center gap-3 text-[10px] text-brand-chocolate/40 mt-1">
+                 <div className="flex items-center gap-3 text-[10px] text-brand-chocolate/40 mt-1">
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Phone size={10} className="shrink-0" />
-                    <span>{customer.phone}</span>
+                    <span>{formatPhone(customer.phone)}</span>
                   </div>
                   {customer.email && (
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -202,20 +206,26 @@ export const CustomerList: React.FC = () => {
               </div>
               
               {/* Action Buttons arranged vertically - pushed to the right */}
-              <div className="flex flex-col gap-1 border-l border-brand-chocolate/5 pl-2 -mr-1">
-                <button 
-                  onClick={() => handleEdit(customer)}
-                  className="w-6 h-6 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                >
-                  <Pencil size={12} />
-                </button>
-                <button 
-                  onClick={() => customer.id && setCustomerToDelete(customer.id)}
-                  className="w-6 h-6 text-red-400/60 hover:text-red-600 transition-colors flex items-center justify-center"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
+              {(hasPermission('edit:customers') || hasPermission('delete:customers')) && (
+                <div className="flex flex-col gap-1 border-l border-brand-chocolate/5 pl-2 -mr-1">
+                  {hasPermission('edit:customers') && (
+                    <button 
+                      onClick={() => handleEdit(customer)}
+                      className="w-6 h-6 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  )}
+                  {hasPermission('delete:customers') && (
+                    <button 
+                      onClick={() => customer.id && setCustomerToDelete(customer.id)}
+                      className="w-6 h-6 text-red-400/60 hover:text-red-600 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -224,11 +234,22 @@ export const CustomerList: React.FC = () => {
       {/* Add New Customer */}
       <BottomSheet 
         isOpen={isAddingCustomer} 
-        onClose={() => setIsAddingCustomer(false)} 
+        onClose={() => {
+          setIsAddingCustomer(false)
+          setIsFormDirty(false)
+        }} 
         title="Add Customer"
         subtitle="Add a new customer to your database"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <CustomerForm onSuccess={() => setIsAddingCustomer(false)} />
+        <CustomerForm 
+          onSuccess={() => {
+            setIsAddingCustomer(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       <BottomSheet 
@@ -258,12 +279,13 @@ export const CustomerList: React.FC = () => {
         onClose={() => {
           setIsEditingCustomer(false)
           setSelectedCustomer(null)
+          setIsFormDirty(false)
         }} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedCustomer?.id}
         title="Edit Customer"
         subtitle="Modify customer contact details"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
 
         {selectedCustomer && (
@@ -271,8 +293,10 @@ export const CustomerList: React.FC = () => {
             onSuccess={() => {
               setIsEditingCustomer(false)
               setSelectedCustomer(null)
+              setIsFormDirty(false)
             }} 
             initialData={selectedCustomer}
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -281,8 +305,24 @@ export const CustomerList: React.FC = () => {
       <ConfirmModal
         isOpen={customerToDelete !== null}
         onClose={() => setCustomerToDelete(null)}
-        onConfirm={() => {
-          if (customerToDelete) deleteCustomer(customerToDelete)
+        onConfirm={async () => {
+          if (customerToDelete) {
+            const customer = customers.find(c => c.id === customerToDelete)
+            try {
+              await deleteCustomer(customerToDelete)
+              notify({
+                type: 'delete',
+                title: 'Customer Removed',
+                message: `Customer ${customer?.name || ''} successfully deleted!`
+              })
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to delete customer ${customer?.name || ''}.`
+              })
+            }
+          }
+          setCustomerToDelete(null)
         }}
         title="Delete Customer?"
         message="Are you sure you want to remove this customer? All their order history will remain, but you won't be able to select them for new orders."

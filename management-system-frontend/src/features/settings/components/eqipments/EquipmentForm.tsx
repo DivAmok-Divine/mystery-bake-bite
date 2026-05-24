@@ -3,22 +3,27 @@ import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Wrench, Tag, Activity, Calendar as CalendarIcon, 
   Wallet, Hash, StickyNote, AlertCircle,
-  ChevronDown, Minus, Plus
+  ChevronDown
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { Calendar } from '@shared/ui/molecules/Calendar'
+import { Calendar } from '@shared/ui/molecules/calender/DateCalendar'
 import { useClickOutside } from '@backend/lib/hooks'
-import { formatNumber } from '@shared/utils/front-end-calculations/formatters'
+import { formatNumber } from '@shared/utils/formatters'
 import type { Equipment } from '@backend/lib/db'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
+import { useNotification } from '@shared/ui/molecules/Notification'
+import { sanitizeInput } from '@shared/utils/commonUtils'
+import { QuantityStepper } from '@shared/ui/atoms/QuantityStepper'
 
 
 interface EquipmentFormProps {
   onSuccess: () => void
   initialData?: Equipment
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
-export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initialData }) => {
+export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initialData, onDirtyChange }) => {
+  const { notify } = useNotification()
   const { addEquipment, updateEquipment } = useEquipment()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConfirm, setShowConfirm] = useState(false)
@@ -55,32 +60,90 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
     if (!formData.category.trim()) newErrors.category = 'Category is required'
     if (!formData.status) newErrors.status = 'Status is required'
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Purchase date is required'
-    if (isNaN(parseFloat(formData.price))) newErrors.price = 'Valid price is required'
+    
+    const parsedPrice = parseFloat(formData.price)
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      newErrors.price = 'Price is required'
+    }
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const equipmentData = {
-      name: formData.name,
-      category: formData.category,
+      name: sanitizeInput(formData.name),
+      category: sanitizeInput(formData.category),
       status: formData.status as any,
       purchaseDate: new Date(formData.purchaseDate),
       ...(formData.lastMaintained ? { lastMaintained: new Date(formData.lastMaintained) } : {}),
       price: parseFloat(formData.price),
-      serialNumber: formData.serialNumber,
-      notes: formData.notes,
+      serialNumber: sanitizeInput(formData.serialNumber),
+      notes: sanitizeInput(formData.notes),
       createdAt: new Date(formData.createdAt)
     }
 
-    if (initialData?.id) {
-      updateEquipment({ id: initialData.id, changes: equipmentData })
-    } else {
-      addEquipment(equipmentData)
+    try {
+      if (initialData?.id) {
+        await updateEquipment({ id: initialData.id, changes: equipmentData })
+        notify({
+          type: 'update',
+          title: 'Equipment Updated',
+          message: `Equipment ${formData.name} successfully updated!`
+        })
+      } else {
+        await addEquipment(equipmentData)
+        notify({
+          type: 'add',
+          title: 'Equipment Added',
+          message: `Equipment ${formData.name} successfully added!`
+        })
+      }
+      onSuccess()
+    } catch (err: any) {
+      notify({
+        type: 'error',
+        message: err?.message || `Failed to save equipment ${formData.name}.`
+      })
     }
-    onSuccess()
   }
+
+  const hasChanges = React.useMemo(() => {
+    if (!initialData) return true
+    
+    const initialPrice = initialData ? formatNumber(initialData.price || 0) : '0.00'
+    const initialPurchaseDate = safeIsoString(initialData?.purchaseDate)
+    const initialLastMaintained = safeIsoString(initialData?.lastMaintained)
+
+    return (
+      formData.name.trim() !== (initialData.name || '').trim() ||
+      formData.category !== (initialData.category || '') ||
+      formData.status !== (initialData.status || '') ||
+      formData.purchaseDate !== initialPurchaseDate ||
+      formData.lastMaintained !== initialLastMaintained ||
+      formData.price !== initialPrice ||
+      (formData.serialNumber || '').trim() !== (initialData.serialNumber || '').trim() ||
+      (formData.notes || '').trim() !== (initialData.notes || '').trim()
+    )
+  }, [initialData, formData])
+
+  const isDirty = React.useMemo(() => {
+    if (initialData) {
+      return hasChanges
+    }
+    return (
+      formData.name.trim() !== '' ||
+      formData.category.trim() !== '' ||
+      formData.status !== '' ||
+      formData.price !== '0.00' ||
+      formData.serialNumber.trim() !== '' ||
+      formData.notes.trim() !== ''
+    )
+  }, [initialData, hasChanges, formData])
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,8 +155,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
   const statuses = ['Operational', 'Maintenance', 'Broken']
 
   return (
-    <div className="flex flex-col gap-5 pb-6">
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         {/* Name */}
         <div className="flex flex-col gap-2">
           <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
@@ -259,52 +322,23 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
             <label className="text-xs font-bold text-brand-chocolate/40 flex items-center gap-2">
               <Wallet size={14} /> Price (GH₵)
             </label>
-            <div className="flex items-center gap-1 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md p-1 h-14">
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseFloat(formData.price) || 0
-                  if (current > 0) setFormData({ ...formData, price: formatNumber(current - 1) })
-                }}
-                className="w-8 h-full bg-brand-chocolate/5 text-brand-chocolate rounded flex items-center justify-center active:bg-brand-chocolate/10"
-              >
-                <Minus size={16} />
-              </button>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                className={`w-full bg-transparent text-center font-bold text-sm focus:outline-none ${errors.price ? 'text-red-500' : 'text-brand-chocolate'}`}
-                value={formData.price}
-                onChange={(e) => {
-                  setFormData({ ...formData, price: e.target.value })
-                  if (errors.price) setErrors({ ...errors, price: '' })
-                }}
-                onFocus={(e) => {
-                  if (e.target.value === '0.00' || e.target.value === '0') {
-                    setFormData({ ...formData, price: '' })
-                  }
-                }}
-                onBlur={(e) => {
-                  if (e.target.value === '') {
-                    setFormData({ ...formData, price: '0.00' })
-                  } else if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                    // Optional: auto-format to 2 decimal places on blur if it's a valid number
-                    setFormData({ ...formData, price: formatNumber(parseFloat(e.target.value) || 0) })
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const current = parseFloat(formData.price) || 0
-                  setFormData({ ...formData, price: formatNumber(current + 1) })
-                }}
-                className="w-8 h-full bg-brand-chocolate text-white rounded flex items-center justify-center active:scale-95"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
+            <QuantityStepper
+              value={parseFloat(formData.price) || 0}
+              onChange={(price) => {
+                setFormData({ ...formData, price: formatNumber(price) })
+                if (errors.price && price > 0) setErrors(prev => ({ ...prev, price: '' }))
+              }}
+              min={0}
+              step={1}
+              isDecimal={true}
+              placeholder="0.00"
+              className={`w-full h-14 bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
+            />
+            {errors.price && (
+              <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-0.5">
+                <AlertCircle size={10} /> {errors.price}
+              </p>
+            )}
           </div>
 
           {/* Serial Number */}
@@ -335,20 +369,10 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
           />
         </div>
 
-        <div className="sticky bottom-0 bg-transparent pt-4 pb-2 z-10 border-t border-brand-chocolate/5 mt-4">
+        <div className="sticky bottom-0 bg-transparent pt-2 pb-3 z-10">
           <button 
             type="submit" 
-            disabled={!!initialData && JSON.stringify(formData) === JSON.stringify({
-              name: initialData?.name || '',
-              category: initialData?.category || '',
-              status: initialData?.status || '',
-              purchaseDate: safeIsoString(initialData?.purchaseDate),
-              lastMaintained: safeIsoString(initialData?.lastMaintained),
-              price: initialData ? formatNumber(initialData.price || 0) : '0.00',
-              serialNumber: initialData?.serialNumber || '',
-              notes: initialData?.notes || '',
-              createdAt: initialData?.createdAt ? new Date(initialData.createdAt).toISOString() : formData.createdAt
-            })}
+            disabled={!!initialData && !hasChanges}
             className="btn-primary w-full h-14 text-lg shadow-xl rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {initialData ? 'Update Equipment' : 'Save Equipment'}
@@ -367,6 +391,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
         }
         confirmText={initialData ? 'Yes, Update' : 'Yes, Save'}
         isDestructive={false}
+        watermarkType="update"
       />
 
       {/* Calendars */}

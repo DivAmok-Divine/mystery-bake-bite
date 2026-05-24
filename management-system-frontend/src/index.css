@@ -158,6 +158,28 @@
   }
 }
 
+/* Wiggling Dots Animation for Button Loaders */
+@keyframes bounce-dots {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-dot-1 {
+  animation: bounce-dots 0.6s infinite ease-in-out;
+}
+.animate-dot-2 {
+  animation: bounce-dots 0.6s infinite ease-in-out;
+  animation-delay: 0.15s;
+}
+.animate-dot-3 {
+  animation: bounce-dots 0.6s infinite ease-in-out;
+  animation-delay: 0.3s;
+}
+
 
 
 

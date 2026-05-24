@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { Plus, BookOpen, Pencil, Trash2, Search } from 'lucide-react'
 import { useRecipes } from '../api/useRecipes'
 import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
@@ -7,20 +8,29 @@ import { RecipeDetails } from './RecipeDetails'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { useNotification } from '@shared/ui/molecules/Notification'
 import type { Recipe } from '@backend/lib/db'
+import { useAuth } from '../../auth/api/AuthContext'
 
 export const RecipeList: React.FC = () => {
+  const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [isAddingRecipe, setIsAddingRecipe] = useState(false)
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null)
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null)
-  const [recipeToDelete, setRecipeToDelete] = useState<number | null>(null)
+  const [recipeToDelete, setRecipeToDelete] = useState<string | null>(null)
+  const [isFormDirty, setIsFormDirty] = useState(false)
   const { recipes, isLoading, deleteRecipe } = useRecipes()
 
-  const filteredRecipes = recipes.filter(recipe => 
-    recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    recipe.ingredients.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter(recipe => 
+      recipe.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      recipe.ingredients.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+    )
+  }, [recipes, debouncedSearchQuery])
 
 
 
@@ -43,12 +53,14 @@ export const RecipeList: React.FC = () => {
       <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-display">Secret Recipes</h1>
-          <button 
-            onClick={() => setIsAddingRecipe(true)}
-            className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-          >
-            <Plus size={20} />
-          </button>
+          {hasPermission('create:recipes') && (
+            <button 
+              onClick={() => setIsAddingRecipe(true)}
+              className="w-10 h-10 rounded-md bg-brand-chocolate text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+            >
+              <Plus size={20} />
+            </button>
+          )}
         </div>
 
         <SearchBar 
@@ -59,16 +71,14 @@ export const RecipeList: React.FC = () => {
       </header>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4">
-          {[1, 2].map(i => <div key={i} className="h-40 glass-skeleton" />)}
-        </div>
+        <ListSkeleton count={2} className="h-40" />
       ) : recipes.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="No recipes yet"
           description="Save your secret formulas by tapping the button below."
-          actionLabel="+ Add secret recipe"
-          onAction={() => setIsAddingRecipe(true)}
+          actionLabel={hasPermission('create:recipes') ? "+ Add secret recipe" : undefined}
+          onAction={hasPermission('create:recipes') ? () => setIsAddingRecipe(true) : undefined}
         />
       ) : filteredRecipes.length === 0 ? (
         <EmptyState
@@ -87,7 +97,11 @@ export const RecipeList: React.FC = () => {
 
               <div className="relative z-10 flex justify-between items-center gap-4">
                 {/* Left aligned Icon and Title */}
-                <div className="flex-1 flex items-center gap-4 py-1">
+                <div 
+                  onClick={() => setViewingRecipe(recipe)}
+                  className="flex-1 flex items-center gap-4 py-1 cursor-pointer active:scale-[0.98] hover:opacity-80 transition-all"
+                  title="View Full Recipe"
+                >
                   <div className="w-10 h-10 rounded-md bg-brand-dough/10 flex items-center justify-center text-brand-chocolate flex-shrink-0">
                     <BookOpen size={20} />
                   </div>
@@ -97,22 +111,28 @@ export const RecipeList: React.FC = () => {
                 </div>
 
                 {/* Right side: Compact Vertical Action Column */}
-                <div className="flex flex-col items-center gap-2">
-                  <button 
-                    onClick={() => setEditingRecipe(recipe)}
-                    className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
-                    title="Edit Recipe"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button 
-                    onClick={() => recipe.id && setRecipeToDelete(recipe.id)}
-                    className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
-                    title="Delete Recipe"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                {(hasPermission('edit:recipes') || hasPermission('delete:recipes')) && (
+                  <div className="flex flex-col items-center gap-2">
+                    {hasPermission('edit:recipes') && (
+                      <button 
+                        onClick={() => setEditingRecipe(recipe)}
+                        className="w-8 h-8 rounded-md bg-brand-chocolate/5 text-brand-chocolate/40 hover:text-brand-chocolate transition-colors flex items-center justify-center"
+                        title="Edit Recipe"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {hasPermission('delete:recipes') && (
+                      <button 
+                        onClick={() => recipe.id && setRecipeToDelete(recipe.id)}
+                        className="w-8 h-8 rounded-md bg-red-50 text-red-400 hover:text-red-600 transition-colors flex items-center justify-center"
+                        title="Delete Recipe"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               
               <button 
@@ -142,27 +162,45 @@ export const RecipeList: React.FC = () => {
       {/* Add Recipe BottomSheet */}
       <BottomSheet 
         isOpen={isAddingRecipe} 
-        onClose={() => setIsAddingRecipe(false)} 
+        onClose={() => {
+          setIsAddingRecipe(false)
+          setIsFormDirty(false)
+        }} 
         title="Add Secret Recipe"
         subtitle="Create a new formula for your bakery"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
-        <RecipeForm onSuccess={() => setIsAddingRecipe(false)} />
+        <RecipeForm 
+          onSuccess={() => {
+            setIsAddingRecipe(false)
+            setIsFormDirty(false)
+          }} 
+          onDirtyChange={setIsFormDirty}
+        />
       </BottomSheet>
 
       {/* Edit Recipe BottomSheet */}
       <BottomSheet 
         isOpen={!!editingRecipe} 
-        onClose={() => setEditingRecipe(null)} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
+        onClose={() => {
+          setEditingRecipe(null)
+          setIsFormDirty(false)
+        }} 
         animationKey={editingRecipe?.id}
         title="Edit Secret Recipe"
         subtitle="Modify recipe ingredients and instructions"
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         {editingRecipe && (
           <RecipeForm 
             recipe={editingRecipe} 
-            onSuccess={() => setEditingRecipe(null)} 
+            onSuccess={() => {
+              setEditingRecipe(null)
+              setIsFormDirty(false)
+            }} 
+            onDirtyChange={setIsFormDirty}
           />
         )}
       </BottomSheet>
@@ -171,8 +209,23 @@ export const RecipeList: React.FC = () => {
       <ConfirmModal
         isOpen={recipeToDelete !== null}
         onClose={() => setRecipeToDelete(null)}
-        onConfirm={() => {
-          if (recipeToDelete) deleteRecipe(recipeToDelete)
+        onConfirm={async () => {
+          if (recipeToDelete) {
+            const recipe = recipes.find(r => r.id === recipeToDelete)
+            try {
+              await deleteRecipe(recipeToDelete)
+              notify({
+                type: 'delete',
+                title: 'Recipe Removed',
+                message: `Recipe ${recipe?.title || ''} successfully deleted!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to delete recipe ${recipe?.title || ''}.`
+              })
+            }
+          }
           setRecipeToDelete(null)
         }}
         title="Delete Recipe?"

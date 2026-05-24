@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
+import { useDebounce } from '@shared/hooks/useDebounce'
 import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Plus, Wrench, Trash2, 
@@ -11,7 +12,7 @@ import { BottomSheet } from '@shared/ui/molecules/BottomSheet'
 import { EmptyState } from '@shared/ui/molecules/EmptyState'
 import { ConfirmModal } from '@shared/ui/molecules/ConfirmModal'
 import { SearchBar } from '@shared/ui/molecules/SearchBar'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 import { EquipmentForm } from '../eqipments/EquipmentForm'
 import { EquipmentDetails } from './EquipmentDetails'
 import { EquipmentSummary } from './EquipmentSummary'
@@ -20,72 +21,59 @@ import type { Equipment } from '@backend/lib/db'
 
 import { CategoryFilter, FilterToggle } from '@shared/ui/molecules/CategoryFilter'
 import { StatusBadge } from '@shared/ui/atoms/StatusBadge'
+import { ListSkeleton } from '@shared/ui/atoms/ListSkeleton'
+import { toggleFilterValue } from '@shared/utils/commonUtils'
+import { useNotification } from '@shared/ui/molecules/Notification'
 
 interface EquipmentListProps {
   onBack: () => void
 }
 
 export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
+  const { notify } = useNotification()
   const { equipment, isLoading, deleteEquipment } = useEquipment()
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 150)
   const [activeCategories, setActiveCategories] = useState<string[]>(['All'])
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
   const [isAdding, setIsAdding] = useState(false)
   const [isShowingSummary, setIsShowingSummary] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [isFormDirty, setIsFormDirty] = useState(false)
 
   const [selectedItem, setSelectedItem] = useState<Equipment | null>(null)
   const [viewingItem, setViewingItem] = useState<Equipment | null>(null)
-  const [itemToDelete, setItemToDelete] = useState<number | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const toggleCategory = (category: string) => {
-    if (category === 'All') {
-      setActiveCategories(['All'])
-      return
-    }
-    let newCategories = activeCategories.includes('All') ? [] : [...activeCategories]
-    if (newCategories.includes(category)) {
-      newCategories = newCategories.filter(c => c !== category)
-    } else {
-      newCategories.push(category)
-    }
-    if (newCategories.length === 0) newCategories = ['All']
-    setActiveCategories(newCategories)
+    setActiveCategories(toggleFilterValue(activeCategories, category))
   }
 
   const toggleStatus = (status: string) => {
-    if (status === 'All') {
-      setActiveStatuses(['All'])
-      return
-    }
-    let newStatuses = activeStatuses.includes('All') ? [] : [...activeStatuses]
-    if (newStatuses.includes(status)) {
-      newStatuses = newStatuses.filter(s => s !== status)
-    } else {
-      newStatuses.push(status)
-    }
-    if (newStatuses.length === 0) newStatuses = ['All']
-    setActiveStatuses(newStatuses)
+    setActiveStatuses(toggleFilterValue(activeStatuses, status))
   }
 
-  const getCategoryCount = (category: string) => {
-    const baseItems = equipment.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(e.status)
-      return matchesSearch && matchesStatus
+  const baseFilteredEquipment = useMemo(() => {
+    return equipment.filter(e => {
+      return e.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+             e.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     })
-    if (category === 'All') return baseItems.length
-    return baseItems.filter(e => e.category === category).length
+  }, [equipment, debouncedSearchQuery])
+
+  const getCategoryCount = (category: string) => {
+    const baseItemsForCategory = baseFilteredEquipment.filter(e => 
+      activeStatuses.includes('All') || activeStatuses.includes(e.status)
+    )
+    if (category === 'All') return baseItemsForCategory.length
+    return baseItemsForCategory.filter(e => e.category === category).length
   }
 
   const getStatusCount = (status: string) => {
-    const baseItems = equipment.filter(e => {
-      const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(e.category)
-      return matchesSearch && matchesCategory
-    })
-    if (status === 'All') return baseItems.length
-    return baseItems.filter(e => e.status === status).length
+    const baseItemsForStatus = baseFilteredEquipment.filter(e => 
+      activeCategories.includes('All') || activeCategories.includes(e.category)
+    )
+    if (status === 'All') return baseItemsForStatus.length
+    return baseItemsForStatus.filter(e => e.status === status).length
   }
 
   const allCategories = ['Ovens', 'Mixers', 'Prep', 'Storage', 'Finishing', 'Display', 'Beverage', 'Cleaning']
@@ -98,13 +86,13 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
     return isNaN(d.getTime()) ? 'N/A' : format(d, formatStr)
   }
 
-  const filteredEquipment = equipment.filter(e => {
-    const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         e.category.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = activeCategories.includes('All') || activeCategories.includes(e.category)
-    const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(e.status)
-    return matchesSearch && matchesCategory && matchesStatus
-  })
+  const filteredEquipment = useMemo(() => {
+    return baseFilteredEquipment.filter(e => {
+      const matchesCategory = activeCategories.includes('All') || activeCategories.includes(e.category)
+      const matchesStatus = activeStatuses.includes('All') || activeStatuses.includes(e.status)
+      return matchesCategory && matchesStatus
+    })
+  }, [baseFilteredEquipment, activeCategories, activeStatuses])
 
 
 
@@ -204,11 +192,7 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
       </header>
 
       {isLoading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-32 glass-skeleton rounded-md" />
-          ))}
-        </div>
+        <ListSkeleton count={3} className="h-32" />
       ) : equipment.length === 0 ? (
         <EmptyState
           icon={Wrench}
@@ -285,19 +269,22 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
         onClose={() => {
           setIsAdding(false)
           setSelectedItem(null)
+          setIsFormDirty(false)
         }} 
-        onSwipeLeft={() => navigateItem('next')}
-        onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedItem?.id}
         title={selectedItem ? 'Edit Equipment' : 'New Equipment'}
         subtitle={selectedItem ? 'Modify equipment details and status' : 'Add a new asset to your kitchen'}
+        disableSwipe={true}
+        hasUnsavedChanges={isFormDirty}
       >
         <EquipmentForm 
           onSuccess={() => {
             setIsAdding(false)
             setSelectedItem(null)
+            setIsFormDirty(false)
           }} 
           initialData={selectedItem || undefined}
+          onDirtyChange={setIsFormDirty}
         />
       </BottomSheet>
 
@@ -317,8 +304,23 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
       <ConfirmModal
         isOpen={itemToDelete !== null}
         onClose={() => setItemToDelete(null)}
-        onConfirm={() => {
-          if (itemToDelete) deleteEquipment(itemToDelete)
+        onConfirm={async () => {
+          if (itemToDelete) {
+            const item = equipment.find(e => e.id === itemToDelete)
+            try {
+              await deleteEquipment(itemToDelete)
+              notify({
+                type: 'delete',
+                title: 'Equipment Removed',
+                message: `Equipment ${item?.name || ''} successfully removed!`
+              })
+            } catch (err) {
+              notify({
+                type: 'error',
+                message: `Failed to remove equipment ${item?.name || ''}.`
+              })
+            }
+          }
           setItemToDelete(null)
         }}
         title="Remove Equipment?"

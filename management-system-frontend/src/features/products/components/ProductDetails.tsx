@@ -1,13 +1,35 @@
 import React from 'react'
 import { Package, FileText } from 'lucide-react'
 import type { Product } from '@backend/lib/db'
-import { formatCurrency } from '@shared/utils/front-end-calculations/formatters'
+import { formatCurrency } from '@shared/utils/formatters'
 
 interface ProductDetailsProps {
-  product: Product
+  product?: Product
+  isLoading?: boolean
 }
 
-export const ProductDetails: React.FC<ProductDetailsProps> = ({ product }) => {
+export const ProductDetails: React.FC<ProductDetailsProps> = ({ product, isLoading }) => {
+  if (isLoading || !product) {
+    return (
+      <div className="flex flex-col gap-3 pb-6 animate-pulse">
+        {/* Product Image pulse */}
+        <div className="w-full aspect-square max-h-72 bg-brand-chocolate/10 rounded-lg relative" />
+        
+        {/* Name & price pulses */}
+        <div className="flex flex-col gap-2 px-1">
+          <div className="h-8 w-48 bg-brand-chocolate/10 rounded-md" />
+          <div className="h-6 w-24 bg-brand-chocolate/10 rounded-md" />
+        </div>
+
+        {/* Description pulse */}
+        <div className="flex flex-col gap-2 px-1">
+          <div className="h-4 w-28 bg-brand-chocolate/10 rounded" />
+          <div className="h-20 w-full bg-brand-chocolate/10 rounded-lg" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-3 pb-6">
       {/* Product Image */}
