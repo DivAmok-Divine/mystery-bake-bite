@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useDebounce } from '@shared/hooks/useDebounce'
+import { useAuth } from '../../../auth/api/AuthContext'
 import { useEquipment } from '../../api/equipments-api/useEquipment'
 import { 
   Plus, Wrench, Trash2, 
@@ -31,6 +32,7 @@ interface EquipmentListProps {
 
 export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
   const { notify } = useNotification()
+  const { hasPermission } = useAuth()
   const { equipment, isLoading, deleteEquipment } = useEquipment()
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 150)
@@ -130,12 +132,14 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
             >
               <BarChart3 size={20} />
             </button>
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
-            >
-              <Plus size={20} />
-            </button>
+            {hasPermission('create:equipment') && (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="w-10 h-10 bg-brand-chocolate text-white rounded-md flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -198,8 +202,8 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
           icon={Wrench}
           title="No equipment listed yet"
           description="Add a new asset to your kitchen to start tracking maintenance and value."
-          actionLabel="+ Add first gear"
-          onAction={() => setIsAdding(true)}
+          actionLabel={hasPermission('create:equipment') ? "+ Add first gear" : undefined}
+          onAction={hasPermission('create:equipment') ? () => setIsAdding(true) : undefined}
         />
       ) : filteredEquipment.length === 0 ? (
         <EmptyState
@@ -245,18 +249,22 @@ export const EquipmentList: React.FC<EquipmentListProps> = ({ onBack }) => {
                 >
                   <Eye size={14} /> View
                 </button>
-                <button 
-                  onClick={() => setSelectedItem(item)}
-                  className="text-xs font-bold text-brand-chocolate/40 hover:text-brand-chocolate flex items-center gap-1 transition-colors"
-                >
-                  <Pencil size={13} /> Edit
-                </button>
-                <button 
-                  onClick={() => setItemToDelete(item.id!)}
-                  className="text-xs font-bold text-red-500/70 hover:text-red-500 flex items-center gap-1 ml-auto transition-colors"
-                >
-                  <Trash2 size={14} /> Remove
-                </button>
+                {hasPermission('edit:equipment') && (
+                  <button 
+                    onClick={() => setSelectedItem(item)}
+                    className="text-xs font-bold text-brand-chocolate/40 hover:text-brand-chocolate flex items-center gap-1 transition-colors"
+                  >
+                    <Pencil size={13} /> Edit
+                  </button>
+                )}
+                {hasPermission('delete:equipment') && (
+                  <button 
+                    onClick={() => setItemToDelete(item.id!)}
+                    className="text-xs font-bold text-red-500/70 hover:text-red-500 flex items-center gap-1 ml-auto transition-colors"
+                  >
+                    <Trash2 size={14} /> Remove
+                  </button>
+                )}
               </div>
             </div>
           ))}
