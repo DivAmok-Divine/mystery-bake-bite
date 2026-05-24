@@ -9,7 +9,7 @@ export const SYSTEM_PERMISSIONS: SystemPermission[] = [
   { key: 'view:orders', title: 'View Orders', desc: 'Allows viewing the orders list.' },
   { key: 'create:orders', title: 'Create Orders', desc: 'Allows creating new customer orders.' },
   { key: 'edit:orders', title: 'Edit Orders', desc: 'Allows editing existing customer orders.' },
-  { key: 'delete:orders', title: 'Delete Orders', desc: 'Allows cancelling or deleting customer orders.' },
+  { key: 'delete:orders', title: 'Delete Orders', desc: 'Allows permanently deleting orders.' },
   
   // Bite Products
   { key: 'view:products', title: 'View Bite Products', desc: 'Allows viewing the bakery product menu.' },
@@ -40,5 +40,14 @@ export const SYSTEM_PERMISSIONS: SystemPermission[] = [
 
   // Settings & Administration
   { key: 'view:settings', title: 'View Settings', desc: 'Allows viewing the settings page.' },
-  { key: 'manage:users', title: 'User Privileges', desc: 'Allows modifying user accounts, roles, and overrides.' }
+  { key: 'view:users', title: 'View Users', desc: 'Allows viewing user accounts and roles.' },
+  { key: 'create:users', title: 'Create Users', desc: 'Allows creating new user accounts.' },
+  { key: 'edit:users', title: 'Edit Users', desc: 'Allows editing user accounts and overrides.' },
+  { key: 'delete:users', title: 'Delete Users', desc: 'Allows deleting user accounts.' },
+
+  // Roles
+  { key: 'view:roles', title: 'View Roles', desc: 'Allows viewing roles.' },
+  { key: 'create:roles', title: 'Create Roles', desc: 'Allows creating new roles.' },
+  { key: 'edit:roles', title: 'Edit Roles', desc: 'Allows editing roles.' },
+  { key: 'delete:roles', title: 'Delete Roles', desc: 'Allows deleting roles.' }
 ];

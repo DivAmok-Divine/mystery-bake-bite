@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useDebounce } from '@shared/hooks/useDebounce'
 import { 
   ShoppingBag, Eye, 
-  Pencil, Plus, Search, BarChart3,
+  Pencil, Plus, Search, BarChart3, Trash2,
   AlertTriangle, CheckCircle2, XCircle, Calendar as CalendarIcon
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -42,7 +42,8 @@ export const OrderList: React.FC = () => {
   
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null)
   const [orderToComplete, setOrderToComplete] = useState<Order | null>(null)
-  const { orders, isLoading, updateOrder } = useOrders()
+  const [orderToActualDelete, setOrderToActualDelete] = useState<Order | null>(null)
+  const { orders, isLoading, updateOrder, deleteOrder } = useOrders()
   const [activeStatuses, setActiveStatuses] = useState<string[]>(['All'])
   const [showDatePresets, setShowDatePresets] = useState(false)
   const [timeView, setTimeView] = useState<'Today' | 'All'>('Today')
@@ -373,6 +374,15 @@ export const OrderList: React.FC = () => {
                     >
                       <Eye size={16} />
                     </button>
+                    {hasPermission('delete:orders') && (
+                      <button 
+                        onClick={() => setOrderToActualDelete(order)}
+                        className="text-red-400 hover:text-red-600 transition-colors"
+                        title="Delete Order Permanently"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                     {order.status === 'Pending' && (
                       <>
                         {hasPermission('edit:orders') && (
@@ -386,20 +396,20 @@ export const OrderList: React.FC = () => {
                         )}
                         {(hasPermission('edit:orders') || hasPermission('delete:orders')) && <div className="w-px h-3 bg-brand-chocolate/10 mx-1" />}
                         {hasPermission('edit:orders') && (
-                          <button 
-                            onClick={() => setOrderToComplete(order)}
-                            className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
-                          >
-                            Mark Done
-                          </button>
-                        )}
-                        {hasPermission('delete:orders') && (
-                          <button 
-                            onClick={() => setOrderToCancel(order)}
-                            className="text-[10px] text-red-500 font-bold underline whitespace-nowrap ml-2"
-                          >
-                            Cancel Order
-                          </button>
+                          <>
+                            <button 
+                              onClick={() => setOrderToComplete(order)}
+                              className="text-[10px] text-emerald-600 font-bold underline whitespace-nowrap"
+                            >
+                              Mark Done
+                            </button>
+                            <button 
+                              onClick={() => setOrderToCancel(order)}
+                              className="text-[10px] text-red-500 font-bold underline whitespace-nowrap ml-2"
+                            >
+                              Cancel Order
+                            </button>
+                          </>
                         )}
                       </>
                     )}
@@ -611,6 +621,44 @@ export const OrderList: React.FC = () => {
           </>
         }
         confirmText="Yes, Cancel Order"
+        isDestructive={true}
+        watermarkType="cancel"
+      />
+
+      {/* Actual Delete Confirmation */}
+      <ConfirmModal 
+        isOpen={!!orderToActualDelete}
+        onClose={() => setOrderToActualDelete(null)}
+        onConfirm={async () => {
+          if (orderToActualDelete?.id) {
+            try {
+              await deleteOrder(orderToActualDelete.id)
+              notify({
+                type: 'delete',
+                title: 'Order Deleted',
+                message: `Order ${orderToActualDelete.orderNumber} successfully deleted!`
+              })
+              if (selectedOrder?.id === orderToActualDelete.id) {
+                setSelectedOrder(null)
+                setIsViewingOrder(false)
+              }
+            } catch (err: any) {
+              notify({
+                type: 'error',
+                message: err?.message || `Failed to delete order ${orderToActualDelete.orderNumber}.`
+              })
+            }
+            setOrderToActualDelete(null)
+          }
+        }}
+        title="Delete Order Permanently"
+        message={
+          <>
+            Are you sure you want to completely delete the order for <span className="font-bold text-brand-chocolate">{orderToActualDelete?.customerName}</span>? 
+            This action will remove it from the database permanently and cannot be undone.
+          </>
+        }
+        confirmText="Yes, Delete Permanently"
         isDestructive={true}
         watermarkType="cancel"
       />
