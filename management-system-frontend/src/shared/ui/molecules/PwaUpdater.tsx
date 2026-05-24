@@ -1,9 +1,11 @@
 
+import { useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { RefreshCw, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export const PwaUpdater = () => {
+  const [isUpdating, setIsUpdating] = useState(false)
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -22,10 +24,10 @@ export const PwaUpdater = () => {
     <AnimatePresence>
       {needRefresh && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.9 }}
-          className="fixed bottom-6 right-6 z-[9999] bg-white/95 backdrop-blur-md border border-brand-chocolate/20 shadow-xl rounded-lg p-4 max-w-sm flex flex-col gap-3"
+          initial={{ opacity: 0, y: -50, scale: 0.9, x: '-50%' }}
+          animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
+          exit={{ opacity: 0, y: -50, scale: 0.9, x: '-50%' }}
+          className="fixed top-6 left-1/2 z-[9999] bg-white/95 backdrop-blur-md border border-brand-chocolate/20 shadow-xl rounded-lg p-4 w-[90%] max-w-sm flex flex-col gap-3"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -42,10 +44,14 @@ export const PwaUpdater = () => {
             </button>
           </div>
           <button
-            onClick={() => updateServiceWorker(true)}
-            className="w-full flex items-center justify-center gap-2 bg-brand-chocolate text-brand-dough py-2 rounded-md text-sm font-semibold hover:bg-brand-chocolate/90 transition-all active:scale-95 shadow-sm"
+            onClick={() => {
+              setIsUpdating(true)
+              updateServiceWorker(true)
+            }}
+            disabled={isUpdating}
+            className="w-full flex items-center justify-center gap-2 bg-brand-chocolate text-brand-dough py-2 rounded-md text-sm font-semibold hover:bg-brand-chocolate/90 transition-all active:scale-95 shadow-sm disabled:opacity-80 disabled:cursor-wait"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className={isUpdating ? 'animate-spin' : ''} />
             Update Now
           </button>
         </motion.div>
