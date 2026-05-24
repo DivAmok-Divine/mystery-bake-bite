@@ -38,18 +38,27 @@ export const LoginPage: React.FC = () => {
 
     // Simulate warm bakery loader
     setTimeout(async () => {
-      const success = await login(trimmedUsername, password)
-      if (success) {
+      try {
+        const success = await login(trimmedUsername, password)
+        if (success) {
+          setIsSubmitting(false)
+          return
+        }
+        
+        notify({
+          type: 'error',
+          title: 'Access denied',
+          message: 'Incorrect username or password. Try again!'
+        })
+      } catch (err: any) {
+        notify({
+          type: 'error',
+          title: 'Access restricted',
+          message: err.message || 'An error occurred during login.'
+        })
+      } finally {
         setIsSubmitting(false)
-        return
       }
-      
-      notify({
-        type: 'error',
-        title: 'Access denied',
-        message: 'Incorrect username or password. Try again!'
-      })
-      setIsSubmitting(false)
     }, 600)
   }
 
