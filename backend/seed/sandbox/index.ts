@@ -1,4 +1,4 @@
-import { db } from '../../lib/db'
+import { db, generateUUID } from '../../lib/db'
 import { mockCustomers } from './customers'
 import { mockProducts, mockCategories } from './products'
 import { mockOrders } from './orders'
@@ -32,28 +32,49 @@ export const seedDatabase = async () => {
   await clearDatabase()
 
   // 1. Seed categories
-  await db.productCategories.bulkPut(mockCategories)
+  const seededCategories = mockCategories.map(c => ({ ...c, id: generateUUID() }))
+  await db.productCategories.bulkPut(seededCategories)
 
-  // 2. Calculate customer statuses based on mockOrders
+  // 2. Calculate customer statuses based on mockOrders and assign UUIDs
   const customersWithStatus = mockCustomers.map(customer => {
     const customerOrders = mockOrders.filter(o => o.customerName === customer.name)
-    if (customerOrders.length === 0) return { ...customer, status: 'Inactive' as const }
+    let status: 'Active' | 'Inactive' = 'Inactive'
     
-    const lastOrderDate = new Date(Math.max(...customerOrders.map(o => new Date(o.createdAt).getTime())))
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    if (customerOrders.length > 0) {
+      const lastOrderDate = new Date(Math.max(...customerOrders.map(o => new Date(o.createdAt).getTime())))
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      status = lastOrderDate >= thirtyDaysAgo ? 'Active' : 'Inactive'
+    }
     
     return {
       ...customer,
-      status: (lastOrderDate >= thirtyDaysAgo ? 'Active' : 'Inactive') as 'Active' | 'Inactive'
+      id: generateUUID(),
+      status
     }
   })
   await db.customers.bulkPut(customersWithStatus)
 
-  // 3. Seed other modules
-  await db.products.bulkPut(mockProducts)
-  await db.orders.bulkPut(mockOrders)
-  await db.recipes.bulkPut(mockRecipes)
-  await db.equipment.bulkPut(mockEquipment)
-  await db.pantry.bulkPut(mockPantry)
+  // 3. Seed other modules with UUIDs
+  const seededProducts = mockProducts.map(p => ({ ...p, id: generateUUID() }))
+  await db.products.bulkPut(seededProducts)
+
+  const seededOrders = mockOrders.map(o => {
+    const customer = customersWithStatus.find(c => c.name === o.customerName)
+    return {
+      ...o,
+      id: generateUUID(),
+      customerId: customer?.id || o.customerId
+    }
+  })
+  await db.orders.bulkPut(seededOrders)
+
+  const seededRecipes = mockRecipes.map(r => ({ ...r, id: generateUUID() }))
+  await db.recipes.bulkPut(seededRecipes)
+
+  const seededEquipment = mockEquipment.map(e => ({ ...e, id: generateUUID() }))
+  await db.equipment.bulkPut(seededEquipment)
+
+  const seededPantry = mockPantry.map(p => ({ ...p, id: generateUUID() }))
+  await db.pantry.bulkPut(seededPantry)
 }

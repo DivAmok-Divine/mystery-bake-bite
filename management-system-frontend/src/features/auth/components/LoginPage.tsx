@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
                 onFocus={() => setIsUsernameFocused(true)}
                 onBlur={() => setIsUsernameFocused(false)}
                 placeholder="Enter username or email"
-                className="w-full pl-10 pr-4 py-3 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate placeholder-brand-chocolate/30 focus:outline-none focus:border-brand-chocolate"
+                className="w-full pl-10 pr-4 py-3 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm text-brand-chocolate placeholder-brand-chocolate/30 focus:outline-none focus:border-brand-chocolate"
               />
             </div>
           </div>
@@ -116,7 +116,7 @@ export const LoginPage: React.FC = () => {
                 onFocus={() => setIsPasswordFocused(true)}
                 onBlur={() => setIsPasswordFocused(false)}
                 placeholder="Enter account password"
-                className="w-full pl-10 pr-12 py-3 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold text-brand-chocolate placeholder-brand-chocolate/30 focus:outline-none focus:border-brand-chocolate"
+                className="w-full pl-10 pr-12 py-3 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm text-brand-chocolate placeholder-brand-chocolate/30 focus:outline-none focus:border-brand-chocolate"
               />
 
               <button
