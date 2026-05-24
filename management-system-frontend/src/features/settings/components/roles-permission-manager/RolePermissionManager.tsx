@@ -3,20 +3,24 @@ import { useAuth } from '../../../auth/api/AuthContext'
 import { ADMIN_USER_ID } from '@backend/seed/users'
 import { ADMIN_ROLE_ID } from '@backend/seed/roles'
 import { ArrowLeft, Shield, User } from 'lucide-react'
-import { RolesTab } from './RolesTab'
-import { UsersTab } from './UsersTab'
+import { RolesTab } from '../roles-tab/RolesTab'
+import { UsersTab } from '../users-tab/UsersTab'
 
 interface RolePermissionManagerProps {
   onBack: () => void
 }
 
 export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ onBack }) => {
-  const { user: currentUser, roles, users } = useAuth()
-  const [activeTab, setActiveTab] = useState<'roles' | 'users'>('roles')
+  const { user: currentUser, roles, users, hasPermission } = useAuth()
+  const canViewRoles = hasPermission('view:roles')
+  const canViewUsers = hasPermission('view:users')
+
+  const [activeTab, setActiveTab] = useState<'roles' | 'users'>(canViewRoles ? 'roles' : 'users')
 
   // Calculate visible users for the tab counter
   const isSuperAdmin = currentUser?.roleId === ADMIN_ROLE_ID
   const visibleUsers = users.filter(u => isSuperAdmin || u.id !== ADMIN_USER_ID)
+  const visibleRoles = isSuperAdmin ? roles : roles.filter(r => r.id !== ADMIN_ROLE_ID)
 
   return (
     <div className="flex flex-col gap-4 select-none">
@@ -37,28 +41,33 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
 
         {/* Tab Controls */}
         <div className="flex bg-brand-chocolate/5 p-1 rounded-md border border-brand-chocolate/5 mt-1">
-          <button
-            onClick={() => setActiveTab('roles')}
-            className={`flex-1 py-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'roles' ? 'bg-brand-chocolate text-white shadow-md' : 'text-brand-chocolate/60'
-              }`}
-          >
-            <Shield size={14} />
-            Roles ({roles.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`flex-1 py-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-brand-chocolate text-white shadow-md' : 'text-brand-chocolate/60'
-              }`}
-          >
-            <User size={14} />
-            Staff ({visibleUsers.length})
-          </button>
+          {canViewRoles && (
+            <button
+              onClick={() => setActiveTab('roles')}
+              className={`flex-1 py-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'roles' ? 'bg-brand-chocolate text-white shadow-md' : 'text-brand-chocolate/60'
+                }`}
+            >
+              <Shield size={14} />
+              Roles ({visibleRoles.length})
+            </button>
+          )}
+          {canViewUsers && (
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex-1 py-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'users' ? 'bg-brand-chocolate text-white shadow-md' : 'text-brand-chocolate/60'
+                }`}
+            >
+              <User size={14} />
+              Staff ({visibleUsers.length})
+            </button>
+          )}
         </div>
       </header>
 
       {/* Main List Sections */}
       <div className="flex flex-col gap-4">
-        {activeTab === 'roles' ? <RolesTab /> : <UsersTab />}
+        {activeTab === 'roles' && canViewRoles && <RolesTab />}
+        {activeTab === 'users' && canViewUsers && <UsersTab />}
       </div>
     </div>
   )
