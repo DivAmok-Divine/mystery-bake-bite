@@ -174,15 +174,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     seedAndLoad()
   }, [])
 
+  // Keep active user session in sync with database updates
+  useEffect(() => {
+    if (user && users.length > 0) {
+      const freshUser = users.find(u => u.id === user.id)
+      if (freshUser) {
+        if (JSON.stringify(user) !== JSON.stringify(freshUser)) {
+          setUser(freshUser)
+          localStorage.setItem('mbb_user', JSON.stringify(freshUser))
+        }
+      } else {
+        setUser(null)
+        localStorage.removeItem('mbb_user')
+      }
+    }
+  }, [users])
+
   const login = async (nameOrRole: string, password?: string): Promise<boolean> => {
     const rawName = nameOrRole.trim()
     const lowerName = rawName.toLowerCase()
     const targetUser = users.find(u => 
-      (u.username && u.username === rawName) || 
+      (u.username && u.username.toLowerCase() === lowerName) || 
       (u.email && u.email.toLowerCase() === lowerName)
     )
 
     if (!targetUser) return false
+
+    if (!isCloudMode() && targetUser.roleId !== ADMIN_ROLE_ID) {
+      throw new Error('Local sandbox mode is restricted to administrators only.')
+    }
 
     const hashedInput = password ? hashPassword(password) : ''
     if (targetUser.password && targetUser.password !== hashedInput) {

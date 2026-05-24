@@ -590,6 +590,7 @@ export const UsersTab: React.FC = () => {
                     { resource: 'customers', name: 'Customers' },
                     { resource: 'recipes', name: 'Recipes' },
                     { resource: 'pantry', name: 'Pantry' },
+                    { resource: 'equipment', name: 'Equipment' },
                     { resource: 'reports', name: 'Reports' },
                     { resource: 'settings', name: 'Settings' },
                     { resource: 'users', name: 'Users' },
