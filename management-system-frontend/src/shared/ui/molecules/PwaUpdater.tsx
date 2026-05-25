@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { RefreshCw } from 'lucide-react'
@@ -11,11 +10,18 @@ export const PwaUpdater = () => {
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(r) {
-      // Check for updates every hour in the background
       if (r) {
+        // 1. Check for updates aggressively every 1 minute
         setInterval(() => {
           r.update()
-        }, 60 * 60 * 1000)
+        }, 60 * 1000)
+
+        // 2. Check for updates instantly whenever the user switches back to this tab
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            r.update()
+          }
+        })
       }
     },
   })
@@ -28,10 +34,10 @@ export const PwaUpdater = () => {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-brand-cream border border-brand-chocolate/20 shadow-2xl rounded-md p-6 w-full max-w-sm flex flex-col gap-6 text-center"
+            className="bg-brand-cream border border-brand-chocolate/20 shadow-2xl rounded-2xl p-6 w-full max-w-sm flex flex-col gap-6 text-center"
           >
             <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-md bg-brand-chocolate/10 flex items-center justify-center text-brand-chocolate mb-2">
+              <div className="w-16 h-16 rounded-full bg-brand-chocolate/10 flex items-center justify-center text-brand-chocolate mb-2">
                 <RefreshCw size={32} className={isUpdating ? 'animate-spin' : ''} />
               </div>
               <div>
@@ -39,7 +45,7 @@ export const PwaUpdater = () => {
                   Update Required ✨
                 </h4>
                 <p className="text-sm text-brand-chocolate/80 leading-relaxed px-2">
-                  A new version of Mystery Bake Bite is ready. You should update now to continue using the application and get the latest features.
+                  A new version of Mystery Bake Bite is ready. You must update now to continue using the application and get the latest features.
                 </p>
               </div>
             </div>
@@ -49,7 +55,7 @@ export const PwaUpdater = () => {
                 updateServiceWorker(true)
               }}
               disabled={isUpdating}
-              className="w-full flex items-center justify-center gap-2 bg-brand-chocolate text-brand-dough py-3.5 rounded-md text-base font-bold hover:bg-brand-chocolate/90 transition-all active:scale-[0.98] shadow-lg disabled:opacity-80 disabled:cursor-wait"
+              className="w-full flex items-center justify-center gap-2 bg-brand-chocolate text-brand-dough py-3.5 rounded-xl text-base font-bold hover:bg-brand-chocolate/90 transition-all active:scale-[0.98] shadow-lg disabled:opacity-80 disabled:cursor-wait"
             >
               <RefreshCw size={18} className={isUpdating ? 'animate-spin' : ''} />
               {isUpdating ? 'Installing Update...' : 'Update Now'}
