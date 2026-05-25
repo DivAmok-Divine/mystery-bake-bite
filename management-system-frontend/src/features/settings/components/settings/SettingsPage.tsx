@@ -20,7 +20,7 @@ interface SettingsSection {
 }
 
 export const SettingsPage: React.FC = () => {
-  const { user, roles, logout, hasPermission } = useAuth()
+  const { user, roles, logout, hasPermission, isAdmin } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
   const [showManager, setShowManager] = useState(false)
 
@@ -82,8 +82,14 @@ export const SettingsPage: React.FC = () => {
       items: [
         { label: 'Dark Mode', value: 'System', icon: Moon, action: () => alert('Theme switching coming soon!') },
       ]
-    },
-    developerToolsSection as SettingsSection,
+    }
+  )
+
+  if (isAdmin) {
+    sections.push(developerToolsSection as SettingsSection)
+  }
+
+  sections.push(
     {
       title: 'Business Information',
       items: [
