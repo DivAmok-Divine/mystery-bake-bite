@@ -22,6 +22,10 @@ export const PwaUpdater = () => {
             r.update()
           }
         })
+
+        // 3. For aggressive caching on iPhones / mobile Safari where tabs freeze
+        window.addEventListener('focus', () => r.update())
+        window.addEventListener('online', () => r.update())
       }
     },
   })
@@ -66,3 +70,4 @@ export const PwaUpdater = () => {
     </AnimatePresence>
   )
 }
+
