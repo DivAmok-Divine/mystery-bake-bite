@@ -410,6 +410,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers(prev => prev.filter(u => u.id !== id))
   }
 
+  // Cross-tab logout (same browser)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mbb_user' && !e.newValue) {
+        setUser(null)
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
+  // Cross-device logout (periodic password hash verification)
+  useEffect(() => {
+    if (!user) return
+    
+    const verifySession = async () => {
+      try {
+        if (isCloudMode()) {
+          const { data } = await supabase.from('users').select('password').eq('id', user.id).single()
+          if (data && data.password !== user.password) {
+            setUser(null)
+            localStorage.removeItem('mbb_user')
+          }
+        } else {
+          const dbUser = await db.users.get(user.id)
+          if (dbUser && dbUser.password !== user.password) {
+            setUser(null)
+            localStorage.removeItem('mbb_user')
+          }
+        }
+      } catch (err) {
+        // Silent catch for network drops
+      }
+    }
+
+    // Check every 15 seconds to ensure fast invalidation
+    const intervalId = setInterval(verifySession, 15000) 
+    return () => clearInterval(intervalId)
+  }, [user])
+
   return (
     <AuthContext.Provider value={{ 
       user, 
