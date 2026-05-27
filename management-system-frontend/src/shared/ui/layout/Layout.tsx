@@ -1,6 +1,7 @@
 import React from 'react'
 import { ShoppingBag, Users, BookOpen, BarChart3, Menu, Package, X, ShoppingCart } from 'lucide-react'
 import { useAuth } from '../../../features/auth/api/AuthContext'
+import { APP_NAME } from '../../utils/constants'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -61,7 +62,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentFeature, onFeat
         <div className="flex items-center gap-3 pl-2 pr-6">
           <img src="/logo-clean.png" alt="MBB Logo" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-lg font-bold leading-none font-display">Mystery Bake Bite</h1>
+            <h1 className="text-lg font-bold leading-none font-display">{APP_NAME}</h1>
             <p className="text-xs text-brand-chocolate/50  font-bold whitespace-nowrap">Unveiling the uniqueness of a recipe</p>
           </div>
         </div>

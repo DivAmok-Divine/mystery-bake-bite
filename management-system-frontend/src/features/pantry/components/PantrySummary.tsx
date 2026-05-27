@@ -126,7 +126,7 @@ export const PantrySummary: React.FC<PantrySummaryProps> = ({ items, history, on
                 <div className="text-right">
                    <button 
                     onClick={() => onRestock(item)}
-                    className="text-xs font-bold text-amber-600 italic  underline hover:text-amber-700 transition-colors"
+                    className="text-xs font-bold text-amber-600 italic underline hover:text-amber-700 transition-colors"
                    >
                     Restock
                    </button>
