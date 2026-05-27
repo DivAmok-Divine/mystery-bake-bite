@@ -120,7 +120,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         <input
           type="text"
           placeholder="Enter customer name"
-          className={`w-full p-4 bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.name ? 'focus:ring-red-500' : 'focus:ring-feature-customers'}`}
+          className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.name ? 'focus:ring-red-500' : 'focus:ring-feature-customers'}`}
           value={formData.name}
           onChange={(e) => {
             const value = e.target.value.replace(/[0-9]/g, '') // Strip numbers
@@ -139,7 +139,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
           <Phone size={14} /> Phone Number
         </label>
-        <div className={`flex items-center gap-3 w-full px-4 h-14 bg-brand-cream/10 border ${errors.phone ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus-within:ring-1 ${errors.phone ? 'focus-within:ring-red-500' : 'focus-within:ring-feature-customers'}`}>
+        <div className={`flex items-center gap-3 w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.phone ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus-within:ring-1 ${errors.phone ? 'focus-within:ring-red-500' : 'focus-within:ring-feature-customers'}`}>
           <span className="text-sm text-brand-chocolate/40 border-r border-brand-chocolate/10 pr-3">+233</span>
           <input
             type="tel"
@@ -170,7 +170,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({ onSuccess, initialDa
         <input
           type="email"
           placeholder="customer@email.com"
-          className="w-full p-4 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-feature-customers"
+          className="w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-feature-customers"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
         />

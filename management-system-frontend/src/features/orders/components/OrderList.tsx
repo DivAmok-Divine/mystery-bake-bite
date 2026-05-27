@@ -145,7 +145,7 @@ export const OrderList: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5">
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-display">Orders</h1>
           <div className="flex items-center gap-2">

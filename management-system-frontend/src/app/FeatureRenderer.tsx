@@ -29,7 +29,7 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
     switch (feature) {
       case 'products': // Our Bite List Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="flex items-center justify-between">
               {/* Mock Title */}
               <div className="h-9 w-36 bg-brand-chocolate/10 rounded-md" />
@@ -55,7 +55,7 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
         )
       case 'orders': // Orders List Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="flex items-center justify-between">
               {/* Mock Title */}
               <div className="h-9 w-32 bg-brand-chocolate/10 rounded-md" />
@@ -71,7 +71,7 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
         )
       case 'customers': // Customers List Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="flex items-center justify-between">
               {/* Mock Title */}
               <div className="h-9 w-40 bg-brand-chocolate/10 rounded-md" />
@@ -87,7 +87,7 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
         )
       case 'recipes': // Secret Recipes List Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="flex items-center justify-between">
               {/* Mock Title */}
               <div className="h-9 w-44 bg-brand-chocolate/10 rounded-md" />
@@ -100,7 +100,7 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
         )
       case 'pantry': // Pantry List Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="flex items-center justify-between">
               {/* Mock Title */}
               <div className="h-9 w-32 bg-brand-chocolate/10 rounded-md" />
@@ -120,13 +120,13 @@ const PageSkeleton: React.FC<{ feature: string }> = ({ feature }) => {
         )
       case 'reporting': // Analytics Reporting Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="h-9 w-48 bg-brand-chocolate/10 rounded-md" />
           </header>
         )
       case 'settings': // Settings Header layout
         return (
-          <header className="sticky top-16 z-30 bg-brand-cream/95 pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5 animate-pulse">
+          <header className="sticky top-16 z-30 bg-brand-cream/95 pt-2 pb-2 -mx-3 px-3 flex flex-col gap-2 border-b border-brand-chocolate/5 animate-pulse">
             <div className="h-9 w-28 bg-brand-chocolate/10 rounded-md" />
           </header>
         )

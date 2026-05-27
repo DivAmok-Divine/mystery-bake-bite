@@ -407,7 +407,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
         <input
           type="text"
           placeholder="e.g. Red Velvet Donut"
-          className={`w-full p-4 bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.name ? 'focus:ring-red-500' : 'focus:ring-brand-dough'}`}
+          className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.name ? 'focus:ring-red-500' : 'focus:ring-brand-dough'}`}
           value={formData.name}
           onChange={(e) => {
             setFormData({ ...formData, name: e.target.value })
@@ -433,7 +433,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
             step={1}
             isDecimal={true}
             placeholder="0.00"
-            className={`w-full h-14 bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
+            className={`w-full h-[46px] bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
           />
           {errors.price && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.price}</p>}
         </div>
@@ -453,7 +453,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
           </label>
           
           {isAddingNewCategory ? (
-            <div className="flex items-center bg-brand-cream/10 border border-brand-chocolate/20 rounded-md p-1 h-14 animate-in slide-in-from-right-2 overflow-hidden">
+            <div className="flex items-center bg-brand-cream/10 border border-brand-chocolate/20 rounded-md p-1 h-[46px] animate-in slide-in-from-right-2 overflow-hidden">
               <input
                 type="text"
                 placeholder={editingCategoryId ? "Rename..." : "Name..."}
@@ -527,7 +527,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSuccess, initialData
                   setIsDropdownOpen(!isDropdownOpen)
                 }
               }}
-              className="w-full px-4 h-14 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-brand-dough"
+              className="w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-brand-dough"
             >
               <span className={`text-xs font-bold ${formData.category ? 'text-brand-chocolate' : 'text-brand-chocolate/40'}`}>
                 {formData.category || (categories.length === 0 ? 'Add first category' : 'Select Category')}
