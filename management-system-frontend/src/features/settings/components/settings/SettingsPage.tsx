@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../../auth/api/AuthContext.tsx'
-import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench, Key } from 'lucide-react'
-import { useDeveloperTools } from '../../../../mock-data/index.tsx'
+import { User, Shield, Moon, LogOut, Info, ChevronRight, Wrench, Key, Database } from 'lucide-react'
 import { EquipmentList } from '../eqipments/EquipmentList.tsx'
 import { RolePermissionManager } from '../roles-permission-manager/RolePermissionManager.tsx'
+import { ChangePasswordModal } from './ChangePasswordModal.tsx'
+import { DeveloperToolsModal } from '../developer-tools/DeveloperToolsModal.tsx'
+import { APP_NAME } from '../../../../shared/utils/constants'
 
 interface SettingsItem {
   label: string
@@ -23,8 +25,12 @@ export const SettingsPage: React.FC = () => {
   const { user, roles, logout, hasPermission, isAdmin } = useAuth()
   const [showEquipment, setShowEquipment] = useState(false)
   const [showManager, setShowManager] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showDevTools, setShowDevTools] = useState(false)
 
-  const { developerToolsSection, DeveloperToolsModal } = useDeveloperTools()
+  const handleChangePassword = () => {
+    setShowPasswordModal(true)
+  }
 
   if (showEquipment) {
     return <EquipmentList onBack={() => setShowEquipment(false)} />
@@ -86,7 +92,18 @@ export const SettingsPage: React.FC = () => {
   )
 
   if (isAdmin) {
-    sections.push(developerToolsSection as SettingsSection)
+    sections.push({
+      title: 'Developer',
+      items: [
+        {
+          label: 'Developer Tools',
+          value: 'Database modes, clear local storage',
+          icon: Database,
+          action: () => setShowDevTools(true),
+          actionLabel: 'Open'
+        }
+      ]
+    })
   }
 
   sections.push(
@@ -101,9 +118,27 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-2">
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-0 border-b border-brand-chocolate/5">
-        <h1 className="text-3xl font-display">Settings</h1>
-        <p className="text-brand-chocolate/40 text-sm">Manage your business preferences</p>
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md py-1.5 -mx-3 px-3 flex items-center justify-between border-b border-brand-chocolate/5">
+        <div className="flex flex-col gap-0">
+          <h1 className="text-3xl font-display">Settings</h1>
+          <p className="text-brand-chocolate/40 text-sm">Manage your business preferences</p>
+        </div>
+        <div className="flex flex-col gap-1.5 items-end">
+          <button
+            onClick={logout}
+            className="flex items-center justify-start gap-2 px-3 py-1.5 border border-red-100 text-red-600 text-sm font-bold rounded-md active:bg-red-50 hover:bg-red-50/50 transition-colors w-full"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+          <button
+            onClick={handleChangePassword}
+            className="flex items-center justify-start gap-2 px-3 h-[34px] border border-brand-chocolate/20 text-brand-chocolate text-sm font-bold rounded-md active:bg-brand-chocolate/5 hover:bg-brand-chocolate/5 transition-colors w-full"
+          >
+            <Key size={16} />
+            <span>Password</span>
+          </button>
+        </div>
       </header>
 
       <div className="flex flex-col gap-4">
@@ -218,27 +253,18 @@ export const SettingsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Main Logout Button */}
-      <div className="flex flex-col mt-4">
-        <button
-          onClick={logout}
-          className="flex items-center justify-center gap-2 p-4 border-2 border-red-100 text-red-600 font-bold rounded-md active:bg-red-50 transition-colors"
-        >
-          <LogOut size={20} />
-          Logout from System
-        </button>
-
-        <div className="text-center mt-2 pb-2">
-          <p className="text-xs font-bold text-brand-chocolate/60">
-            Designed By DivAmok Corp. ltd
-          </p>
-          <p className="text-xs text-brand-chocolate/40">
-            © {new Date().getFullYear()} all rights reserved
-          </p>
-        </div>
+      {/* Footer */}
+      <div className="text-center mt-2 pb-4">
+        <p className="text-xs font-bold text-brand-chocolate/60">
+          Designed By DivAmok Corp. ltd
+        </p>
+        <p className="text-xs text-brand-chocolate/40">
+          © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+        </p>
       </div>
 
-      {DeveloperToolsModal}
+      <DeveloperToolsModal isOpen={showDevTools} onClose={() => setShowDevTools(false)} />
+      <ChangePasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
     </div>
   )
 }

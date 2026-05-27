@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useDebounce } from '@shared/hooks/useDebounce'
-import { 
-  Plus, Package, Pencil, Trash2, 
+import {
+  Plus, Package, Pencil, Trash2,
   Search, BarChart3,
   ShoppingCart, Eye
 } from 'lucide-react'
@@ -66,7 +66,7 @@ export const PantryList: React.FC = () => {
     return (pantryItems || []).filter(item => {
       if (!item) return false
       return (item.name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-             (item.category || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+        (item.category || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     })
   }, [pantryItems, debouncedSearchQuery])
 
@@ -79,7 +79,7 @@ export const PantryList: React.FC = () => {
   }, [baseFilteredItems, activeCategories, activeStatuses])
 
   const getCategoryCount = (cat: string) => {
-    const baseItemsForCategory = baseFilteredItems.filter(item => 
+    const baseItemsForCategory = baseFilteredItems.filter(item =>
       activeStatuses.includes('All') || activeStatuses.includes(item.status || 'In Stock')
     )
     if (cat === 'All') return baseItemsForCategory.length
@@ -95,7 +95,7 @@ export const PantryList: React.FC = () => {
   }
 
   const getStatusCount = (stat: string) => {
-    const baseItemsForStatus = baseFilteredItems.filter(item => 
+    const baseItemsForStatus = baseFilteredItems.filter(item =>
       activeCategories.includes('All') || activeCategories.includes(item.category)
     )
     if (stat === 'All') return baseItemsForStatus.length
@@ -107,11 +107,11 @@ export const PantryList: React.FC = () => {
     if (!selectedItem || list.length <= 1) return
     const currentIndex = list.findIndex(i => i.id === selectedItem.id)
     if (currentIndex === -1) return
-    
+
     let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1
     if (newIndex >= list.length) newIndex = 0
     if (newIndex < 0) newIndex = list.length - 1
-    
+
     setSelectedItem(list[newIndex])
   }
 
@@ -213,16 +213,15 @@ export const PantryList: React.FC = () => {
               />
 
               <div className="flex items-start justify-between gap-4">
-                <div 
+                <div
                   onClick={() => { setSelectedItem(item); setIsViewingItem(true) }}
                   className="flex items-center gap-3 min-w-0 cursor-pointer active:scale-[0.98] hover:opacity-80 transition-all"
                   title="View Item Details"
                 >
-                  <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
-                    item.status === 'Low Stock' ? 'bg-amber-100 text-amber-600' :
-                    item.status === 'Out of Stock' ? 'bg-rose-100 text-rose-600' :
-                    'bg-brand-dough/10 text-brand-chocolate'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${item.status === 'Low Stock' ? 'bg-amber-100 text-amber-600' :
+                      item.status === 'Out of Stock' ? 'bg-rose-100 text-rose-600' :
+                        'bg-brand-dough/10 text-brand-chocolate'
+                    }`}>
                     <Package size={20} />
                   </div>
                   <div className="min-w-0">
@@ -261,10 +260,10 @@ export const PantryList: React.FC = () => {
                   </button>
                   {hasPermission('edit:pantry') && (
                     <button
-                      onClick={() => { 
-                        setSelectedItem(item); 
-                        setIsRestockForm(false); 
-                        setIsEditingItem(true) 
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setIsRestockForm(false);
+                        setIsEditingItem(true)
                       }}
                       className="w-7 h-7 flex items-center justify-center rounded text-brand-chocolate/40 hover:text-brand-chocolate hover:bg-brand-chocolate/5 transition-colors"
                     >
@@ -283,7 +282,7 @@ export const PantryList: React.FC = () => {
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-[10px] font-bold text-emerald-600 leading-none">{formatCurrency(item.lastPrice || 0)} / {item.unit}</span>
                   {hasPermission('create:pantry') && item.status !== 'In Stock' && (
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedItem(item)
                         setIsRestockForm(true)
@@ -313,18 +312,21 @@ export const PantryList: React.FC = () => {
         disableSwipe={true}
         hasUnsavedChanges={isFormDirty}
       >
-        <PantryForm 
+        <PantryForm
           onSuccess={() => {
             setIsAddingItem(false)
             setIsFormDirty(false)
-          }} 
+          }}
           onDirtyChange={setIsFormDirty}
         />
       </BottomSheet>
 
       <BottomSheet
         isOpen={isViewingItem}
-        onClose={() => { setIsViewingItem(false); setSelectedItem(null) }}
+        onClose={() => { 
+          setIsViewingItem(false)
+          setTimeout(() => setSelectedItem(null), 300)
+        }}
         onSwipeLeft={() => navigateItem('next')}
         onSwipeRight={() => navigateItem('prev')}
         animationKey={selectedItem?.id}
@@ -332,8 +334,8 @@ export const PantryList: React.FC = () => {
         subtitle="Stock levels, value and history"
       >
         {currentSelectedItem && (
-          <PantryDetails 
-            item={currentSelectedItem} 
+          <PantryDetails
+            item={currentSelectedItem}
             onRestock={() => {
               setIsViewingItem(false)
               setIsRestockForm(true)
@@ -348,10 +350,12 @@ export const PantryList: React.FC = () => {
         isOpen={isEditingItem}
         onClose={() => { 
           setIsEditingItem(false); 
-          setSelectedItem(null);
-          setIsRestockForm(false);
-          setIsNavigatingFromDetails(false);
           setIsFormDirty(false);
+          setTimeout(() => {
+            setSelectedItem(null);
+            setIsRestockForm(false);
+            setIsNavigatingFromDetails(false);
+          }, 300)
         }}
         onBack={isNavigatingFromDetails ? () => {
           setIsEditingItem(false);
@@ -367,15 +371,20 @@ export const PantryList: React.FC = () => {
       >
         {currentSelectedItem && (
           <PantryForm
-            onSuccess={() => { 
-              setIsEditingItem(false); 
-              setIsRestockForm(false);
+            onSuccess={() => {
+              setIsEditingItem(false);
               setIsFormDirty(false);
               if (isNavigatingFromDetails) {
-                setIsViewingItem(true);
-                setIsNavigatingFromDetails(false);
+                setTimeout(() => {
+                  setIsRestockForm(false);
+                  setIsViewingItem(true);
+                  setIsNavigatingFromDetails(false);
+                }, 300)
               } else {
-                setSelectedItem(null);
+                setTimeout(() => {
+                  setIsRestockForm(false);
+                  setSelectedItem(null);
+                }, 300)
               }
             }}
             initialData={currentSelectedItem}
@@ -397,7 +406,7 @@ export const PantryList: React.FC = () => {
         }}
         onBack={
           summaryView === 'edit' ? () => setSummaryView('details') :
-          summaryView === 'details' ? () => setSummaryView('main') : undefined
+            summaryView === 'details' ? () => setSummaryView('main') : undefined
         }
         onSwipeLeft={() => {
           if (summaryView !== 'main') {
@@ -414,18 +423,18 @@ export const PantryList: React.FC = () => {
         animationKey={summaryView === 'main' ? 'main' : selectedItem?.id}
         title={
           summaryView === 'main' ? "Pantry Analytics" :
-          summaryView === 'details' ? "Item Details" : "Restock Item"
+            summaryView === 'details' ? "Item Details" : "Restock Item"
         }
         subtitle={
           summaryView === 'main' ? "Overview of your supplies and shopping list" :
-          summaryView === 'details' ? "Stock levels and history" : "Restock ingredient stock"
+            summaryView === 'details' ? "Stock levels and history" : "Restock ingredient stock"
         }
       >
         <div className="flex flex-col gap-4">
           {summaryView === 'main' && (
-            <PantrySummary 
-              items={pantryItems} 
-              history={pantryHistory} 
+            <PantrySummary
+              items={pantryItems}
+              history={pantryHistory}
               onRestock={(item) => {
                 setSelectedItem(item)
                 setSummaryView('edit')
@@ -438,8 +447,8 @@ export const PantryList: React.FC = () => {
           )}
 
           {summaryView === 'details' && currentSelectedItem && (
-            <PantryDetails 
-              item={currentSelectedItem} 
+            <PantryDetails
+              item={currentSelectedItem}
               onRestock={() => setSummaryView('edit')}
             />
           )}
