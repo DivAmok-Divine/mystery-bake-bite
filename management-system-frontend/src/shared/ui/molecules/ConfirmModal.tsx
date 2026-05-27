@@ -4,7 +4,7 @@ import { Trash2, XCircle, CheckCircle2, Save } from 'lucide-react'
 interface ConfirmModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: () => Promise<void> | void
   title: string
   message: ReactNode
   confirmText?: string
@@ -54,13 +54,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     if (isSaving) return
     setIsSaving(true)
     
-    // Call the original onConfirm inside a micro-task so it runs immediately
-    // in the background, updating state/databases and showing skeleton at the back
-    onConfirm()
-    
-    // Let the wiggling dots animate beautifully for 1200ms
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    onClose()
+    try {
+      // Wait for the actual action to complete
+      await onConfirm()
+    } finally {
+      onClose()
+    }
   }
 
   return (

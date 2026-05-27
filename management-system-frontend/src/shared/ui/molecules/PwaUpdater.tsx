@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { APP_NAME } from '../../utils/constants'
 
 export const PwaUpdater = () => {
   const [isUpdating, setIsUpdating] = useState(false)
@@ -49,7 +50,7 @@ export const PwaUpdater = () => {
                   Update Required ✨
                 </h4>
                 <p className="text-sm text-brand-chocolate/80 leading-relaxed px-2">
-                  A new version of Mystery Bake Bite is ready. You must update now to continue using the application and get the latest features.
+                  A new version of {APP_NAME} is ready. You must update now to continue using the application and get the latest features.
                 </p>
               </div>
             </div>
