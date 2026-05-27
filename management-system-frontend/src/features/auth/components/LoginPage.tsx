@@ -13,6 +13,15 @@ export const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUsernameFocused, setIsUsernameFocused] = useState(false)
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
+  const [logoutReason, setLogoutReason] = useState<string | null>(null)
+
+  React.useEffect(() => {
+    const reason = sessionStorage.getItem('logout_reason')
+    if (reason === 'inactivity') {
+      setLogoutReason('inactivity')
+      sessionStorage.removeItem('logout_reason')
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -153,6 +162,17 @@ export const LoginPage: React.FC = () => {
               </>
             )}
           </button>
+
+          {/* Inactivity message */}
+          {logoutReason === 'inactivity' && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-1 text-center bg-green-500/10 border border-green-500/20 text-green-600 text-[11px] font-bold py-2 px-3 rounded-md"
+            >
+              You were logged out due to inactivity.
+            </motion.div>
+          )}
         </form>
 
       </motion.div>

@@ -484,7 +484,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <label className="text-xs font-bold tracking-tight text-brand-chocolate/40 flex items-center gap-2">
             <Wallet size={14} /> Total Amount
           </label>
-          <div className="flex items-center px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md">
+          <div className="flex items-center px-4 h-[46px] bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md">
             <span className="text-sm font-bold text-brand-chocolate">{formatCurrency(parseFloat(formData.amount) || 0)}</span>
           </div>
         </div>
@@ -501,7 +501,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               setIsDropdownOpen(false)
               setIsProductDropdownOpen(false)
             }}
-            className={`w-full px-3 h-14 text-xs font-medium flex items-center justify-between bg-brand-cream/10 border ${errors.deadline ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md focus:outline-none`}
+            className={`w-full px-3 h-[46px] text-xs font-medium flex items-center justify-between bg-brand-cream/10 border ${errors.deadline ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md focus:outline-none`}
           >
             {formData.deadline ? (
               <div className="flex flex-col items-start justify-center gap-0.5 h-full text-left">
@@ -537,7 +537,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         <input
           type="text"
           placeholder="Special requests, packaging, etc."
-          className="w-full p-4 h-14 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-dough"
+          className="w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-dough"
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
         />

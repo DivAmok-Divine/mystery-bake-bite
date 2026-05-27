@@ -23,9 +23,9 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
   const visibleRoles = isSuperAdmin ? roles : roles.filter(r => r.id !== ADMIN_ROLE_ID)
 
   return (
-    <div className="flex flex-col gap-4 select-none">
+    <div className="flex flex-col gap-2 select-none">
       {/* Header */}
-      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-4 pb-2 -mx-3 px-3 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <header className="sticky top-16 z-30 bg-brand-cream/95 backdrop-blur-md pt-1 pb-1 -mx-3 px-3 flex flex-col gap-1 border-b border-brand-chocolate/5">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -40,7 +40,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
         </div>
 
         {/* Tab Controls */}
-        <div className="flex bg-brand-chocolate/5 p-1 rounded-md border border-brand-chocolate/5 mt-1">
+        <div className="flex bg-brand-chocolate/5 p-1 rounded-md border border-brand-chocolate/5">
           {canViewRoles && (
             <button
               onClick={() => setActiveTab('roles')}
