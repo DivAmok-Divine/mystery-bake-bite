@@ -219,7 +219,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSuccess, onDir
         <input
           type="text"
           placeholder="e.g. Signature Chocolate Donut"
-          className={`w-full p-4 bg-brand-cream/10 border ${errors.title ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.title ? 'focus:ring-red-500' : 'focus:ring-feature-recipes'}`}
+          className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.title ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 ${errors.title ? 'focus:ring-red-500' : 'focus:ring-feature-recipes'}`}
           value={formData.title}
           onChange={(e) => {
             setFormData({ ...formData, title: e.target.value })

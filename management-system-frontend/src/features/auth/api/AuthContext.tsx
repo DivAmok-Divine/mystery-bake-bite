@@ -12,12 +12,12 @@ interface AuthContextType {
   login: (nameOrRole: string, password?: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
-  
+
   // Role CRUD operations
   createRole: (name: string, color: string, description: string | undefined, permissions: string[]) => Promise<void>;
   updateRole: (id: string, name: string, color: string, description: string | undefined, permissions: string[]) => Promise<void>;
   deleteRole: (id: string) => Promise<void>;
-  
+
   // User CRUD operations
   createUser: (name: string, username: string, email: string, phone: string, roleId: string, password?: string, assignedPermissions?: string[], revokedPermissions?: string[]) => Promise<void>;
   updateUser: (id: string, name: string, username: string, email: string, phone: string, roleId: string, password?: string, assignedPermissions?: string[], revokedPermissions?: string[]) => Promise<void>;
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     return null
   });
-  
+
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Fetch from Supabase
           const { data: rolesData, error: rolesError } = await supabase.from('roles').select('*')
           if (rolesError) throw rolesError
-          
+
           let fetchedRoles = rolesData || []
           if (fetchedRoles.length === 0) {
             // Seed Roles to Supabase
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }))
             const { error: insertRolesErr } = await supabase.from('roles').insert(rolesToInsert)
             if (insertRolesErr) throw insertRolesErr
-            
+
             // Re-fetch
             const { data: refetchedRoles, error: refetchRolesError } = await supabase.from('roles').select('*')
             if (refetchRolesError) throw refetchRolesError
@@ -193,8 +193,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (nameOrRole: string, password?: string): Promise<boolean> => {
     const rawName = nameOrRole.trim()
     const lowerName = rawName.toLowerCase()
-    const targetUser = users.find(u => 
-      (u.username && u.username.toLowerCase() === lowerName) || 
+    const targetUser = users.find(u =>
+      (u.username && u.username.toLowerCase() === lowerName) ||
       (u.email && u.email.toLowerCase() === lowerName)
     )
 
@@ -256,7 +256,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       permissions,
       createdAt: new Date()
     }
-    
+
     if (isCloudMode()) {
       const { error } = await supabase.from('roles').insert([{
         id: newRole.id,
@@ -276,7 +276,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateRole = async (id: string, name: string, color: string, description: string | undefined, permissions: string[]) => {
     if (id === ADMIN_ROLE_ID) return // Immutable protection
-    
+
     if (isCloudMode()) {
       const { error } = await supabase.from('roles').update({
         name,
@@ -344,14 +344,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateUser = async (id: string, name: string, username: string, email: string, phone: string, roleId: string, password?: string, assignedPermissions?: string[], revokedPermissions?: string[]) => {
     const isAlreadyHashed = password && password.length === 64 && /^[0-9a-fA-F]+$/.test(password);
     const hashedPassword = password ? (isAlreadyHashed ? password : hashPassword(password)) : undefined;
-    const updates: Partial<User> = { 
+    const updates: Partial<User> = {
       name,
       username,
       email,
       phone,
-      roleId, 
-      assignedPermissions: assignedPermissions || [], 
-      revokedPermissions: revokedPermissions || [] 
+      roleId,
+      assignedPermissions: assignedPermissions || [],
+      revokedPermissions: revokedPermissions || []
     }
     if (hashedPassword !== undefined) {
       updates.password = hashedPassword;
@@ -424,7 +424,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Cross-device logout (periodic password hash verification)
   useEffect(() => {
     if (!user) return
-    
+
     const verifySession = async () => {
       try {
         if (isCloudMode()) {
@@ -446,19 +446,57 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     // Check every 15 seconds to ensure fast invalidation
-    const intervalId = setInterval(verifySession, 15000) 
+    const intervalId = setInterval(verifySession, 15000)
     return () => clearInterval(intervalId)
   }, [user])
 
+  // Inactivity timeout (1 hour = 3600000 ms)
+  useEffect(() => {
+    if (!user) return
+
+    let timeoutId: ReturnType<typeof setTimeout>
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        // Auto-logout after 1 hour of inactivity
+        sessionStorage.setItem('logout_reason', 'inactivity')
+        setUser(null)
+        localStorage.removeItem('mbb_user')
+      }, 3600000) // 1 hour in ms
+    }
+
+    // Set initial timer on mount
+    resetTimer()
+
+    let isThrottled = false
+    const handleActivity = () => {
+      if (!isThrottled) {
+        resetTimer()
+        isThrottled = true
+        // Throttle resets to once per second to avoid performance drops
+        setTimeout(() => { isThrottled = false }, 1000)
+      }
+    }
+
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll']
+    events.forEach(event => window.addEventListener(event, handleActivity, { passive: true }))
+
+    return () => {
+      clearTimeout(timeoutId)
+      events.forEach(event => window.removeEventListener(event, handleActivity))
+    }
+  }, [user])
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      roles, 
-      users, 
-      isAdmin, 
+    <AuthContext.Provider value={{
+      user,
+      roles,
+      users,
+      isAdmin,
       isLoading,
-      login, 
-      logout, 
+      login,
+      logout,
       hasPermission,
       createRole,
       updateRole,

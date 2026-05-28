@@ -32,7 +32,7 @@ export const DeveloperToolsModal: React.FC<DeveloperToolsProps> = ({ isOpen, onC
     setShowConfirmMode(mode)
   }
 
-  const confirmToggleMode = () => {
+  const confirmToggleMode = async () => {
     if (!showConfirmMode) return
     setDbMode(showConfirmMode)
     window.location.reload()

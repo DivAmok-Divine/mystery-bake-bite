@@ -151,7 +151,7 @@ export const RolesTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-0 pb-2 -mx-1 px-1 flex flex-col gap-2 border-b border-brand-chocolate/5">
         <div className="flex justify-between items-center px-1">
           <h1 className="text-3xl font-display">Roles</h1>
           <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ export const RolesTab: React.FC = () => {
                 if (errors.roleName) setErrors(prev => ({ ...prev, roleName: '' }))
               }}
               placeholder="e.g. Lead Baker, Assistant"
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.roleName ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.roleName ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.roleName && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.roleName}</p>}
           </div>

@@ -251,7 +251,7 @@ export const UsersTab: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-2 pb-3 -mx-1 px-1 flex flex-col gap-3 border-b border-brand-chocolate/5">
+      <div className="sticky top-[170px] z-20 bg-brand-cream/95 backdrop-blur-md pt-0 pb-2 -mx-1 px-1 flex flex-col gap-2 border-b border-brand-chocolate/5">
         <div className="flex justify-between items-center px-1">
           <h1 className="text-3xl font-display">Users</h1>
           <div className="flex items-center gap-2">
@@ -386,7 +386,7 @@ export const UsersTab: React.FC = () => {
                 if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
               }}
               placeholder="e.g. Kofi, Ama"
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.name ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.name ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
           </div>
@@ -401,7 +401,7 @@ export const UsersTab: React.FC = () => {
                 if (errors.username) setErrors(prev => ({ ...prev, username: '' }))
               }}
               placeholder="e.g. kofi.baker"
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.username ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.username ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.username && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.username}</p>}
           </div>
@@ -416,7 +416,7 @@ export const UsersTab: React.FC = () => {
                 if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
               }}
               placeholder="e.g. kofi@mysterybakebite.com"
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.email ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.email ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.email && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.email}</p>}
           </div>
@@ -431,15 +431,35 @@ export const UsersTab: React.FC = () => {
                 if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
               }}
               placeholder="e.g. 0540000000"
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.phone ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.phone ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.phone && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.phone}</p>}
           </div>
 
           {/* Role selector */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest px-1">Role</label>
-            <div className={`${errors.roleId ? 'border border-red-500 rounded-lg p-[1px] bg-red-50/50' : ''}`}>
+            <div className="flex items-center justify-between px-1">
+              <label className="text-[10px] font-bold text-brand-chocolate/40 tracking-widest">Role</label>
+              {isSuperAdmin && (
+                <label className="flex items-center gap-1.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={userRoleId === ADMIN_ROLE_ID}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setUserRoleId(ADMIN_ROLE_ID)
+                        if (errors.roleId) setErrors(prev => ({ ...prev, roleId: '' }))
+                      } else {
+                        setUserRoleId('')
+                      }
+                    }}
+                    className="w-3.5 h-3.5 rounded text-brand-chocolate border-brand-chocolate/20 focus:ring-brand-chocolate accent-brand-chocolate cursor-pointer"
+                  />
+                  <span className="text-[10px] font-bold text-brand-chocolate/60 group-hover:text-brand-chocolate transition-colors">Is Admin</span>
+                </label>
+              )}
+            </div>
+            <div className={`${errors.roleId ? 'border border-red-500 rounded-lg p-[1px] bg-red-50/50' : ''} ${userRoleId === ADMIN_ROLE_ID ? 'opacity-50 pointer-events-none' : ''}`}>
               <DropDown
                 value={userRoleId}
                 onChange={(val) => {
@@ -448,6 +468,7 @@ export const UsersTab: React.FC = () => {
                 }}
                 options={roles.filter(r => isSuperAdmin || r.id !== ADMIN_ROLE_ID).map(r => ({ value: r.id, label: r.name }))}
                 placeholder="Select a role"
+                direction="up"
               />
             </div>
             {errors.roleId && <p className="text-[10px] text-red-500 font-bold mt-0.5">{errors.roleId}</p>}
@@ -466,7 +487,7 @@ export const UsersTab: React.FC = () => {
                 if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
               }}
               placeholder={editingUserId ? 'Enter new password to reset...' : 'e.g. staff123, 7789'}
-              className={`w-full px-4 h-14 bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.password ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
+              className={`w-full px-4 h-[46px] bg-brand-chocolate/5 rounded-md text-sm text-brand-chocolate focus:outline-none focus:ring-1 focus:ring-brand-chocolate border ${errors.password ? 'border-red-500 bg-red-50/50' : 'border-brand-chocolate/10'}`}
             />
             {errors.password && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.password}</p>}
           </div>

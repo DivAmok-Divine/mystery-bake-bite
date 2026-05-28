@@ -126,7 +126,7 @@ export const SettingsPage: React.FC = () => {
         <div className="flex flex-col gap-1.5 items-end">
           <button
             onClick={logout}
-            className="flex items-center justify-start gap-2 px-3 py-1.5 border border-red-100 text-red-600 text-sm font-bold rounded-md active:bg-red-50 hover:bg-red-50/50 transition-colors w-full"
+            className="flex items-center justify-start gap-2 px-3 py-1.5 border border-red-300 text-red-600 text-sm font-bold rounded-md active:bg-red-50 hover:bg-red-50/50 transition-colors w-full"
           >
             <LogOut size={16} />
             <span>Logout</span>

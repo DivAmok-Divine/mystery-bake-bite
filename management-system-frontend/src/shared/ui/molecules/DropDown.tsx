@@ -12,6 +12,7 @@ interface DropDownProps {
   options: DropDownOption[];
   placeholder?: string;
   disabled?: boolean;
+  direction?: 'up' | 'down';
 }
 
 export const DropDown: React.FC<DropDownProps> = ({
@@ -19,7 +20,8 @@ export const DropDown: React.FC<DropDownProps> = ({
   onChange,
   options,
   placeholder = "Select an option...",
-  disabled = false
+  disabled = false,
+  direction = 'down'
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -42,7 +44,7 @@ export const DropDown: React.FC<DropDownProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 h-14 bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold focus:outline-none focus:ring-1 focus:ring-brand-chocolate flex items-center justify-between transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-chocolate/10 cursor-pointer'} ${!selectedOption ? 'text-brand-chocolate/40' : 'text-brand-chocolate'}`}
+        className={`w-full px-4 h-[46px] bg-brand-chocolate/5 border border-brand-chocolate/10 rounded-md text-sm font-bold focus:outline-none focus:ring-1 focus:ring-brand-chocolate flex items-center justify-between transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-chocolate/10 cursor-pointer'} ${!selectedOption ? 'text-brand-chocolate/40' : 'text-brand-chocolate'}`}
       >
         <span className="truncate">
           {selectedOption ? selectedOption.label : placeholder}
@@ -51,7 +53,7 @@ export const DropDown: React.FC<DropDownProps> = ({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-brand-chocolate/10 rounded-md shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-60 overflow-y-auto">
+        <div className={`absolute left-0 right-0 ${direction === 'up' ? 'bottom-full mb-1.5 animate-in fade-in slide-in-from-bottom-2' : 'top-full mt-1.5 animate-in fade-in slide-in-from-top-2'} bg-white border border-brand-chocolate/10 rounded-md shadow-xl overflow-hidden z-50 duration-200 max-h-60 overflow-y-auto`}>
           {options.length === 0 ? (
             <div className="p-4 text-xs text-center text-brand-chocolate/40 italic font-bold">
               No options available
