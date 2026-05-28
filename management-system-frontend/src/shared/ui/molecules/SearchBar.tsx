@@ -30,7 +30,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <input
         type="text"
         placeholder={placeholder}
-        className="w-full pl-10 pr-10 py-3 bg-brand-surface border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-dough/50 text-sm font-medium placeholder:text-brand-chocolate/30"
+        className="w-full pl-10 pr-10 h-[46px] bg-brand-surface border border-brand-chocolate/10 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-dough/50 text-sm font-medium placeholder:text-brand-chocolate/30"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => {

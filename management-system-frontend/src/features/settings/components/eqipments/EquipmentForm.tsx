@@ -165,7 +165,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
           <input
             type="text"
             placeholder="e.g. Industrial Oven"
-            className={`w-full p-4 h-14 bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 focus:ring-brand-chocolate`}
+            className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 focus:ring-brand-chocolate`}
             value={formData.name}
             onChange={(e) => {
               setFormData({ ...formData, name: e.target.value })
@@ -191,7 +191,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
                 setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
                 setIsStatusDropdownOpen(false)
               }}
-              className={`w-full px-4 h-14 bg-brand-cream/10 border ${errors.category ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
+              className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.category ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
             >
               <span className={formData.category ? 'text-brand-chocolate' : 'text-brand-chocolate/40'}>
                 {formData.category || 'Select...'}
@@ -234,7 +234,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
                 setIsStatusDropdownOpen(!isStatusDropdownOpen)
                 setIsCategoryDropdownOpen(false)
               }}
-              className={`w-full px-4 h-14 bg-brand-cream/10 border ${errors.status ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
+              className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.status ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
             >
               <span className={formData.status ? 'text-brand-chocolate' : 'text-brand-chocolate/30'}>
                 {formData.status || 'Select status...'}
@@ -280,7 +280,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
                 setIsCategoryDropdownOpen(false)
                 setIsStatusDropdownOpen(false)
               }}
-              className={`w-full px-4 h-14 bg-brand-cream/10 border ${errors.purchaseDate ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
+              className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.purchaseDate ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
             >
               <span className={formData.purchaseDate ? 'text-brand-chocolate' : 'text-brand-chocolate/30'}>
                 {formData.purchaseDate ? format(new Date(formData.purchaseDate), 'MMM d, yyyy') : 'Pick date'}
@@ -306,7 +306,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
                 setIsCategoryDropdownOpen(false)
                 setIsStatusDropdownOpen(false)
               }}
-              className={`w-full px-4 h-14 bg-brand-cream/10 border ${errors.lastMaintained ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
+              className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.lastMaintained ? 'border-red-500' : 'border-brand-chocolate/10'} rounded-md flex items-center justify-between text-sm`}
             >
               <span className={formData.lastMaintained ? 'text-brand-chocolate' : 'text-brand-chocolate/30'}>
                 {formData.lastMaintained ? format(new Date(formData.lastMaintained), 'MMM d, yyyy') : 'Pick date'}
@@ -332,7 +332,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
               step={1}
               isDecimal={true}
               placeholder="0.00"
-              className={`w-full h-14 bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
+              className={`w-full h-[46px] bg-brand-cream/10 font-bold ${errors.price ? 'border-red-500 text-red-500' : 'text-brand-chocolate'}`}
             />
             {errors.price && (
               <p className="text-[10px] text-red-500 font-bold flex items-center gap-1 mt-0.5">
@@ -349,7 +349,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({ onSuccess, initial
             <input
               type="text"
               placeholder="Optional..."
-              className="w-full p-4 h-14 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none"
+              className="w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md focus:outline-none"
               value={formData.serialNumber}
               onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
             />

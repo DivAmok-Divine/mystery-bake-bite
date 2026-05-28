@@ -176,7 +176,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
           type="text"
           placeholder="e.g. Extra Fine Flour"
           disabled={isRestock}
-          className={`w-full p-4 h-14 bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 focus:ring-brand-chocolate ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`w-full px-4 h-[46px] bg-brand-cream/10 border ${errors.name ? 'border-red-500 bg-red-50/10' : 'border-brand-chocolate/10'} rounded-md focus:outline-none focus:ring-1 focus:ring-brand-chocolate ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
           value={formData.name}
           onChange={(e) => {
             setFormData({ ...formData, name: e.target.value })
@@ -196,7 +196,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
             type="button"
             disabled={isRestock}
             onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-            className={`w-full px-4 h-14 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between text-sm ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between text-sm ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className={formData.category ? 'text-brand-chocolate' : 'text-brand-chocolate/40'}>
               {formData.category || 'Select...'}
@@ -234,7 +234,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
             type="button"
             disabled={isRestock}
             onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
-            className={`w-full px-4 h-14 bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between text-sm ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full px-4 h-[46px] bg-brand-cream/10 border border-brand-chocolate/10 rounded-md flex items-center justify-between text-sm ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <span className="text-brand-chocolate">{formData.unit}</span>
             <ChevronDown size={14} className="opacity-40" />
@@ -272,7 +272,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
             min={0}
             max={99999}
             disabled={isEditing}
-            className={`w-full h-14 bg-brand-cream/10 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full h-[46px] bg-brand-cream/10 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
         </div>
 
@@ -287,7 +287,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
             min={0}
             max={99999}
             disabled={isRestock}
-            className={`w-full h-14 bg-brand-cream/10 ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-full h-[46px] bg-brand-cream/10 ${isRestock ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
         </div>
       </div>
@@ -305,7 +305,7 @@ export const PantryForm: React.FC<PantryFormProps> = ({ onSuccess, initialData, 
           isDecimal={true}
           placeholder="0.00"
           disabled={isEditing}
-          className={`w-full h-14 bg-brand-cream/10 font-bold text-emerald-600 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`w-full h-[46px] bg-brand-cream/10 font-bold text-emerald-600 ${isEditing ? 'opacity-50 cursor-not-allowed' : ''}`}
         />
 
       </div>
