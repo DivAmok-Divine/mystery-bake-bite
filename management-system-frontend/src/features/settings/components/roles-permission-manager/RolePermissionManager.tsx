@@ -5,7 +5,7 @@ import { ADMIN_ROLE_ID } from '@backend/seed/roles'
 import { ArrowLeft, Shield, User } from 'lucide-react'
 import { RolesTab } from '../roles-tab/RolesTab'
 import { UsersTab } from '../users-tab/UsersTab'
-import { LogsTab } from '../logs/LogsTab'
+import { LogsTab } from '../activity-logs/LogsTab'
 import { Activity } from 'lucide-react'
 
 interface RolePermissionManagerProps {
