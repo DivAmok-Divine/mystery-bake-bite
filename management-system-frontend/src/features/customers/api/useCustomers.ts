@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type Customer } from '@backend/lib/db'
+import { logSystemAction } from '../../settings/api/useSystemLogs'
 
 export const useCustomers = () => {
   const queryClient = useQueryClient()
@@ -59,8 +60,9 @@ export const useCustomers = () => {
         return { ...customer, id }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Create', `Created customer: ${variables.name}`)
     }
   })
 
@@ -87,8 +89,9 @@ export const useCustomers = () => {
         await db.customers.update(id, { ...changes, updatedAt: new Date() } as any)
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Edit', `Updated customer ID: ${variables.id}`)
     }
   })
 
@@ -104,8 +107,9 @@ export const useCustomers = () => {
         await db.customers.delete(id)
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Delete', `Deleted customer ID: ${variables}`)
     }
   })
 

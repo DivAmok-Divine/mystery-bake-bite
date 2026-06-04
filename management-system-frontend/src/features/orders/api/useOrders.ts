@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type Order } from '@backend/lib/db'
 import { determineCustomerStatus } from '@shared/utils/customerGeneralAnalytics'
+import { logSystemAction } from '../../settings/api/useSystemLogs'
 
 export const useOrders = () => {
   const queryClient = useQueryClient()
@@ -101,9 +102,10 @@ export const useOrders = () => {
         return id
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Create', `Created order: ${variables.orderNumber}`)
     }
   })
 
@@ -141,9 +143,10 @@ export const useOrders = () => {
         if (order?.customerId) await updateCustomerStatus(order.customerId)
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Edit', `Updated order ID: ${variables.id}`)
     }
   })
 
@@ -170,9 +173,10 @@ export const useOrders = () => {
         if (order?.customerId) await updateCustomerStatus(order.customerId)
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['customers'] })
+      logSystemAction('Delete', `Deleted order ID: ${variables}`)
     }
   })
 

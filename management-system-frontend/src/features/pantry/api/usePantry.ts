@@ -1,6 +1,7 @@
 import React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type PantryItem, type PantryHistory } from '@backend/lib/db'
+import { logSystemAction } from '../../settings/api/useSystemLogs'
 
 export const usePantry = () => {
   const queryClient = useQueryClient()
@@ -333,6 +334,7 @@ export const usePantry = () => {
       
       queryClient.invalidateQueries({ queryKey: ['pantry'] })
       queryClient.invalidateQueries({ queryKey: ['pantryHistory'] })
+      logSystemAction('Create', `Created pantry item: ${item.name}`)
       return { ...item, id }
     }
   }
@@ -366,6 +368,7 @@ export const usePantry = () => {
         updatedAt: new Date()
       })
       queryClient.invalidateQueries({ queryKey: ['pantry'] })
+      logSystemAction('Edit', `Updated pantry item ID: ${id}`)
       return res
     }
   }
@@ -381,6 +384,7 @@ export const usePantry = () => {
       await db.pantry.delete(id)
     }
     queryClient.invalidateQueries({ queryKey: ['pantry'] })
+    logSystemAction('Delete', `Deleted pantry item ID: ${id}`)
   }
 
   const updateStock = async (id: string, newStock: number, type: 'Restock' | 'Usage' | 'Waste' | 'Adjustment' = 'Adjustment') => {
@@ -452,6 +456,7 @@ export const usePantry = () => {
 
         queryClient.invalidateQueries({ queryKey: ['pantry'] })
         queryClient.invalidateQueries({ queryKey: ['pantryHistory'] })
+        logSystemAction('Edit', `Adjusted stock for ${item.name} by ${delta}`)
         return updated[0]
       } else {
         const item = await db.pantry.get(id)
@@ -485,6 +490,7 @@ export const usePantry = () => {
 
         queryClient.invalidateQueries({ queryKey: ['pantry'] })
         queryClient.invalidateQueries({ queryKey: ['pantryHistory'] })
+        logSystemAction('Edit', `Adjusted stock for ${item.name} by ${delta}`)
         return res
       }
     } catch (err) {

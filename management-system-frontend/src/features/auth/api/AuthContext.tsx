@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { db, supabase, isCloudMode, generateUUID, type Role, type User } from '@backend/lib/db';
 import { ADMIN_ROLE_ID, SEEDED_ROLES } from '@backend/seed/roles';
 import { ADMIN_USER_ID, hashPassword, SEEDED_USERS } from '@backend/seed/users';
+import { logSystemAction } from '../../settings/api/useSystemLogs';
 
 interface AuthContextType {
   user: User | null;
@@ -211,10 +212,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setUser(targetUser)
     localStorage.setItem('mbb_user', JSON.stringify(targetUser))
+    await logSystemAction('Login', 'User logged in successfully.')
     return true
   }
 
   const logout = () => {
+    logSystemAction('Logout', 'User logged out manually.')
     setUser(null)
     localStorage.removeItem('mbb_user')
   };
@@ -272,6 +275,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setRoles(prev => [...prev, newRole])
+    logSystemAction('Create', `Created role: ${name}`)
   }
 
   const updateRole = async (id: string, name: string, color: string, description: string | undefined, permissions: string[]) => {
@@ -290,6 +294,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setRoles(prev => prev.map(r => r.id === id ? { ...r, name, color, description, permissions } : r))
+    logSystemAction('Permission Changes', `Updated role: ${name}`)
   }
 
   const deleteRole = async (id: string) => {
@@ -303,6 +308,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setRoles(prev => prev.filter(r => r.id !== id))
+    logSystemAction('Delete', `Deleted role ID: ${id}`)
   }
 
   // User CRUD operations
@@ -339,6 +345,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setUsers(prev => [...prev, newUser])
+    logSystemAction('Create', `Created user: ${name}`)
   }
 
   const updateUser = async (id: string, name: string, username: string, email: string, phone: string, roleId: string, password?: string, assignedPermissions?: string[], revokedPermissions?: string[]) => {
@@ -395,6 +402,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(updatedUser as User)
       localStorage.setItem('mbb_user', JSON.stringify(updatedUser))
     }
+
+    if (assignedPermissions?.length || revokedPermissions?.length) {
+      logSystemAction('Permission Overides', `Modified permission overrides for user: ${name}`)
+    } else {
+      logSystemAction('Edit', `Updated user: ${name}`)
+    }
   }
 
   const deleteUser = async (id: string) => {
@@ -408,6 +421,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     setUsers(prev => prev.filter(u => u.id !== id))
+    logSystemAction('Delete', `Deleted user ID: ${id}`)
   }
 
   // Cross-tab logout (same browser)
@@ -461,6 +475,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       timeoutId = setTimeout(() => {
         // Auto-logout after 1 hour of inactivity
         sessionStorage.setItem('logout_reason', 'inactivity')
+        logSystemAction('Session TimeOut', 'User automatically logged out due to inactivity.')
         setUser(null)
         localStorage.removeItem('mbb_user')
       }, 3600000) // 1 hour in ms
