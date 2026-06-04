@@ -5,6 +5,8 @@ import { ADMIN_ROLE_ID } from '@backend/seed/roles'
 import { ArrowLeft, Shield, User } from 'lucide-react'
 import { RolesTab } from '../roles-tab/RolesTab'
 import { UsersTab } from '../users-tab/UsersTab'
+import { LogsTab } from '../activity-logs/LogsTab'
+import { Activity } from 'lucide-react'
 
 interface RolePermissionManagerProps {
   onBack: () => void
@@ -14,8 +16,9 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
   const { user: currentUser, roles, users, hasPermission } = useAuth()
   const canViewRoles = hasPermission('view:roles')
   const canViewUsers = hasPermission('view:users')
+  const canViewLogs = hasPermission('view:logs')
 
-  const [activeTab, setActiveTab] = useState<'roles' | 'users'>(canViewRoles ? 'roles' : 'users')
+  const [activeTab, setActiveTab] = useState<'roles' | 'users' | 'logs'>(canViewRoles ? 'roles' : 'users')
 
   // Calculate visible users for the tab counter
   const isSuperAdmin = currentUser?.roleId === ADMIN_ROLE_ID
@@ -61,6 +64,16 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
               Staff ({visibleUsers.length})
             </button>
           )}
+          {canViewLogs && (
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex-1 py-2.5 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'logs' ? 'bg-brand-chocolate text-white shadow-md' : 'text-brand-chocolate/60'
+                }`}
+            >
+              <Activity size={14} />
+              Logs
+            </button>
+          )}
         </div>
       </header>
 
@@ -68,6 +81,7 @@ export const RolePermissionManager: React.FC<RolePermissionManagerProps> = ({ on
       <div className="flex flex-col gap-4">
         {activeTab === 'roles' && canViewRoles && <RolesTab />}
         {activeTab === 'users' && canViewUsers && <UsersTab />}
+        {activeTab === 'logs' && canViewLogs && <LogsTab />}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type Product } from '@backend/lib/db'
+import { logSystemAction } from '../../settings/api/useSystemLogs'
 
 export const useProducts = () => {
   const queryClient = useQueryClient()
@@ -59,7 +60,10 @@ export const useProducts = () => {
         return { ...product, id }
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      logSystemAction('Create', `Created product: ${variables.name}`)
+    }
   })
 
   const updateProductMutation = useMutation({
@@ -85,7 +89,10 @@ export const useProducts = () => {
         await db.products.update(id, { ...changes, updatedAt: new Date() } as any)
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      logSystemAction('Edit', `Updated product ID: ${variables.id}`)
+    }
   })
 
   const deleteProductMutation = useMutation({
@@ -100,7 +107,10 @@ export const useProducts = () => {
         await db.products.delete(id)
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      logSystemAction('Delete', `Deleted product ID: ${variables}`)
+    }
   })
 
   return {

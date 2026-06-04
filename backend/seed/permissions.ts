@@ -55,5 +55,8 @@ export const SYSTEM_PERMISSIONS: SystemPermission[] = [
   { key: 'view:roles', title: 'View Roles', desc: 'Allows viewing roles.' },
   { key: 'create:roles', title: 'Create Roles', desc: 'Allows creating new roles.' },
   { key: 'edit:roles', title: 'Edit Roles', desc: 'Allows editing roles.' },
-  { key: 'delete:roles', title: 'Delete Roles', desc: 'Allows deleting roles.' }
+  { key: 'delete:roles', title: 'Delete Roles', desc: 'Allows deleting roles.' },
+
+  // System Logs
+  { key: 'view:logs', title: 'View Logs', desc: 'Allows viewing system audit logs.' }
 ];
