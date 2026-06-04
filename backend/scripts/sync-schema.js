@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-//npm run db:sync - this is code t run it
+//npm run db:sync - Complex@Plex1254 this is code t run it
 // Check if 'pg' is installed. If not, install it.
 try {
   require.resolve('pg');
@@ -282,6 +282,16 @@ CREATE TABLE IF NOT EXISTS pantry_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- 10. CREATE SYSTEM LOGS TABLE
+CREATE TABLE IF NOT EXISTS system_logs (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT,
+    user_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+    details TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
 -- 10. Database Migrations / Structural Adjustments
 ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL;
 ALTER TABLE recipes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL;
@@ -297,6 +307,7 @@ ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pantry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pantry_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_logs ENABLE ROW LEVEL SECURITY;
 
 -- 11. Allow Public Access Policies (Safe to run multiple times)
 DO $$
@@ -317,6 +328,8 @@ BEGIN
     DROP POLICY IF EXISTS "Allow public write pantry" ON pantry;
     DROP POLICY IF EXISTS "Allow public read pantry_history" ON pantry_history;
     DROP POLICY IF EXISTS "Allow public write pantry_history" ON pantry_history;
+    DROP POLICY IF EXISTS "Allow public read system_logs" ON system_logs;
+    DROP POLICY IF EXISTS "Allow public write system_logs" ON system_logs;
 EXCEPTION
     WHEN undefined_object THEN null;
 END $$;
@@ -344,6 +357,9 @@ CREATE POLICY "Allow public write pantry" ON pantry FOR ALL USING (true) WITH CH
 
 CREATE POLICY "Allow public read pantry_history" ON pantry_history FOR SELECT USING (true);
 CREATE POLICY "Allow public write pantry_history" ON pantry_history FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read system_logs" ON system_logs FOR SELECT USING (true);
+CREATE POLICY "Allow public write system_logs" ON system_logs FOR ALL USING (true) WITH CHECK (true);
 
 -- 12. HIGH-PERFORMANCE DATABASE INDEXES
 -- Indexing foreign keys to prevent sequential scans during JOINs or relationship filters

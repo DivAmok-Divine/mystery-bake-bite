@@ -118,6 +118,15 @@ export interface User {
   createdAt: Date;
 }
 
+export interface SystemLog {
+  id?: string;
+  userId: string;
+  userName: string;
+  action: string;
+  details: string;
+  createdAt: Date;
+}
+
 // -------------------------------------------------------------
 // 💾 LOCAL DATABASE (DEXIE INDEXEDDB) - For Testing & Mock Data
 // -------------------------------------------------------------
@@ -132,6 +141,7 @@ export class MysteryBakeDB extends Dexie {
   pantryHistory!: Table<PantryHistory, string>;
   roles!: Table<Role, string>;
   users!: Table<User, string>;
+  systemLogs!: Table<SystemLog, string>;
 
   constructor() {
     super('MysteryBakeDB');
@@ -170,6 +180,19 @@ export class MysteryBakeDB extends Dexie {
       pantryHistory: 'id, itemId, type',
       roles: 'id, name',
       users: 'id, name, username, email, roleId'
+    });
+    this.version(4).stores({
+      customers: 'id, name, status',
+      products: 'id, name, category',
+      productCategories: 'id, name',
+      orders: 'id, orderNumber, customerId, customerName, status',
+      recipes: 'id, title',
+      equipment: 'id, name, status',
+      pantry: 'id, name, category, status',
+      pantryHistory: 'id, itemId, type',
+      roles: 'id, name',
+      users: 'id, name, username, email, roleId',
+      systemLogs: 'id, userId, action, createdAt'
     });
   }
 }
