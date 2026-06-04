@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type Recipe } from '@backend/lib/db'
+import { logSystemAction } from '../../settings/api/useSystemLogs'
 
 export const useRecipes = () => {
   const queryClient = useQueryClient()
@@ -55,8 +56,9 @@ export const useRecipes = () => {
         return { ...recipe, id }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      logSystemAction('Create', `Created recipe: ${variables.title}`)
     }
   })
 
@@ -82,8 +84,9 @@ export const useRecipes = () => {
         return recipe
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      logSystemAction('Edit', `Updated recipe: ${variables.title}`)
     }
   })
 
@@ -99,8 +102,9 @@ export const useRecipes = () => {
         await db.recipes.delete(id)
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] })
+      logSystemAction('Delete', `Deleted recipe ID: ${variables}`)
     }
   })
 

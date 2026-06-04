@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db, supabase, isCloudMode, generateUUID, type Equipment } from '@backend/lib/db'
+import { logSystemAction } from '../../api/useSystemLogs'
 
 export const useEquipment = () => {
   const queryClient = useQueryClient()
@@ -63,7 +64,10 @@ export const useEquipment = () => {
         return { ...equipment, id }
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      logSystemAction('Create', `Created equipment: ${variables.name}`)
+    }
   })
 
   const updateEquipmentMutation = useMutation({
@@ -91,7 +95,10 @@ export const useEquipment = () => {
         await db.equipment.update(id, { ...changes, updatedAt: new Date() } as any)
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      logSystemAction('Edit', `Updated equipment ID: ${variables.id}`)
+    }
   })
 
   const deleteEquipmentMutation = useMutation({
@@ -106,7 +113,10 @@ export const useEquipment = () => {
         await db.equipment.delete(id)
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipment'] })
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      logSystemAction('Delete', `Deleted equipment ID: ${variables}`)
+    }
   })
 
   return {

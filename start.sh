@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🥐 Mystery Bake Bite - Unified Monorepo Start Script
+# 🥐 Mystery Bake Bite - Unified Monorepo Start Scripts
 
 # Colors for a premium terminal look
 GOLD='\033[0;33m'
