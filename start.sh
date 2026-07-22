@@ -23,7 +23,7 @@ case $choice in
     echo -e "\n${GOLD}🚀 Starting Management System...${NC}"
     npm run dev:admin
     ;;
-  2)
+  2)   
     echo -e "\n${GOLD}🚀 Starting Website App...${NC}"
     npm run dev:web
     ;;
